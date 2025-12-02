@@ -1,0 +1,16 @@
+{
+  "name": "Halal Scanner",
+  "short_name": "HalalScan",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#059669",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google-fonts/noto-emoji/main/png/512/emoji_u1f343.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
