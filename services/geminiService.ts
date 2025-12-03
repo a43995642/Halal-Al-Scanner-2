@@ -194,7 +194,7 @@ export const analyzeImage = async (
     // Remove the data URL prefix
     const cleanBase64 = processedImage.replace(/^data:image\/(png|jpg|jpeg|webp);base64,/, "");
 
-    const promptText = `
+    const systemInstruction = `
     أنت خبير تدقيق غذائي إسلامي. مهمتك هي فحص المنتجات الغذائية بدقة متناهية.
     
     **المرحلة 0: التحقق من نوع الصورة:**
@@ -240,8 +240,6 @@ export const analyzeImage = async (
     - إذا كانت قائمة المكونات واضحة تماماً ومقروءة -> (90-100).
     - إذا كان النص مقروءاً بصعوبة -> (60-80).
     - لحالات NON_FOOD -> 100.
-
-    المخرجات مطلوبة بصيغة JSON حصراً.
     `;
 
     const response = await ai.models.generateContent({
@@ -256,11 +254,12 @@ export const analyzeImage = async (
             },
           },
           {
-            text: promptText,
+            text: "قم بتحليل المكونات في هذه الصورة وتحديد ما إذا كانت حلالاً أم لا.",
           },
         ],
       },
       config: {
+        systemInstruction: systemInstruction,
         responseMimeType: "application/json",
         responseSchema: responseSchema,
         // Low temperature for deterministic results
