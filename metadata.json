@@ -1,5 +1,5 @@
 {
-  "name": "Copy of Halal AI Scanner 2",
+  "name": "Halal Scanner",
   "description": "A React application that uses Gemini AI to scan food ingredients and determine if they are Halal, Haram, or Doubtful.",
   "requestFramePermissions": [
     "camera"
