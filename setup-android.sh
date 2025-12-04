@@ -1,47 +1,39 @@
 #!/bin/bash
 
-# Stop on error
+# إيقاف السكربت عند حدوث أي خطأ
 set -e
 
-echo "🚀 Starting Android SDK Setup for Codespaces..."
+echo "🚀 Starting Android Environment Setup..."
 
-# 1. Install Java (JDK 17) and dependencies
-echo "📦 Installing Java 17 and dependencies..."
+# 1. تحديد مسار SDK
+export ANDROID_HOME=/usr/lib/android-sdk
+export ANDROID_SDK_ROOT=/usr/lib/android-sdk
+
+# 2. تحديث الحزم وتثبيت Java 17 و Android SDK
+echo "📦 Installing Java 17 and Android SDK..."
 sudo apt-get update
-sudo apt-get install -y openjdk-17-jdk unzip wget
+sudo apt-get install -y openjdk-17-jdk android-sdk
 
-# 2. Define Paths
-export ANDROID_HOME=$HOME/android-sdk
-export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+# 3. إنشاء المجلدات وإصلاح الصلاحيات (لحل مشكلة رفض الوصول)
+echo "🔓 Fixing permissions for $ANDROID_HOME..."
+if [ ! -d "$ANDROID_HOME" ]; then
+    sudo mkdir -p "$ANDROID_HOME"
+fi
+sudo chown -R $(whoami) "$ANDROID_HOME"
+sudo chmod -R 777 "$ANDROID_HOME"
 
-# 3. Create SDK Directory
-echo "📂 Creating SDK directory at $ANDROID_HOME..."
-mkdir -p $ANDROID_HOME/cmdline-tools
+# 4. قبول التراخيص يدوياً (لتجنب الخطأ: Licences not accepted)
+echo "📝 Accepting Android Licenses..."
+mkdir -p "$ANDROID_HOME/licenses"
+# كتابة التواقيع (Hashes) الخاصة بالتراخيص
+echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > "$ANDROID_HOME/licenses/android-sdk-license"
+echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license"
+echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> "$ANDROID_HOME/licenses/android-sdk-license"
+echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
 
-# 4. Download Command Line Tools
-echo "⬇️ Downloading Android Command Line Tools..."
-cd $ANDROID_HOME/cmdline-tools
-wget -q https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
+# 5. إنشاء ملف local.properties الضروري لـ Gradle
+echo "⚙️ Creating android/local.properties..."
+mkdir -p android
+echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-# 5. Unzip and Restructure (Critical step for sdkmanager)
-echo "extracting..."
-unzip -q cmdline-tools.zip
-mv cmdline-tools latest
-rm cmdline-tools.zip
-
-# 6. Accept Licenses and Install Platform Tools
-echo "📜 Accepting Licenses and installing Platform Tools..."
-yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-# 7. Create local.properties in the project android folder
-echo "⚙️ Configuring local.properties..."
-PROJECT_ROOT="/workspaces/My-Halal-App" # Adjust if your folder name is different
-echo "sdk.dir=$ANDROID_HOME" > $PROJECT_ROOT/android/local.properties
-
-# 8. Set Environment Variables for current session
-echo "export ANDROID_HOME=$ANDROID_HOME" >> $HOME/.bashrc
-echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools" >> $HOME/.bashrc
-
-echo "✅ Android SDK setup complete!"
-echo "⚠️  Please run: 'source ~/.bashrc' to update your current terminal session, or close and reopen the terminal."
+echo "✅ Android Environment Setup Complete!"
