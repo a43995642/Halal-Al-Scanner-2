@@ -11,7 +11,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl animate-slide-up relative flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl animate-slide-up relative flex flex-col max-h-[90vh]">
         
         {/* Close Button */}
         <button 
@@ -44,72 +44,72 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-grow bg-slate-50">
+        <div className="overflow-y-auto flex-grow bg-slate-50 dark:bg-slate-950">
           <div className="p-6">
             
             {/* Features Grid */}
             <div className="grid grid-cols-1 gap-3 mb-8">
-              <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                <div className="bg-emerald-100 p-2 rounded-full text-emerald-600 shrink-0">
+              <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-full text-emerald-600 dark:text-emerald-400 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 text-sm">سرعة ودقة مضاعفة</h4>
-                  <p className="text-xs text-gray-500">استخدام نماذج ذكاء اصطناعي متقدمة</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">سرعة ودقة مضاعفة</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">استخدام نماذج ذكاء اصطناعي متقدمة</p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                 <div className="bg-emerald-100 p-2 rounded-full text-emerald-600 shrink-0">
+              <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                 <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-full text-emerald-600 dark:text-emerald-400 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 text-sm">فحوصات لا محدودة</h4>
-                  <p className="text-xs text-gray-500">لا قيود يومية على عدد الصور</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">فحوصات لا محدودة</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">لا قيود يومية على عدد الصور</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                 <div className="bg-emerald-100 p-2 rounded-full text-emerald-600 shrink-0">
+              <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
+                 <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-full text-emerald-600 dark:text-emerald-400 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 text-sm">دعم التطوير</h4>
-                  <p className="text-xs text-gray-500">ساهم في تحسين التطبيق للمسلمين</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">دعم التطوير</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">ساهم في تحسين التطبيق للمسلمين</p>
                 </div>
               </div>
             </div>
 
             {/* Pricing Selection */}
-            <h3 className="font-bold text-gray-900 mb-3 px-1">اختر الخطة المناسبة:</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white mb-3 px-1">اختر الخطة المناسبة:</h3>
             <div className="space-y-3">
               {/* Monthly Plan */}
               <div 
                 onClick={() => setSelectedPlan('monthly')}
                 className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
                   selectedPlan === 'monthly' 
-                    ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' 
-                    : 'border-gray-200 bg-white hover:border-emerald-200'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-500' 
+                    : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-emerald-200 dark:hover:border-emerald-700'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPlan === 'monthly' ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPlan === 'monthly' ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 dark:border-gray-500'}`}>
                     {selectedPlan === 'monthly' && <div className="w-2 h-2 bg-white rounded-full"></div>}
                   </div>
                   <div>
-                    <span className="font-bold text-gray-900 block">اشتراك شهري</span>
-                    <span className="text-xs text-gray-500">يجدد تلقائياً، إلغاء في أي وقت</span>
+                    <span className="font-bold text-gray-900 dark:text-white block">اشتراك شهري</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">يجدد تلقائياً، إلغاء في أي وقت</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-emerald-700 text-lg">9.99 ر.س</span>
-                  <span className="text-xs text-gray-400 block">/ شهر</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">9.99 ر.س</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 block">/ شهر</span>
                 </div>
               </div>
 
@@ -118,8 +118,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 onClick={() => setSelectedPlan('lifetime')}
                 className={`relative p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between overflow-hidden ${
                   selectedPlan === 'lifetime' 
-                    ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-400' 
-                    : 'border-gray-200 bg-white hover:border-amber-200'
+                    ? 'border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-400 dark:ring-amber-600' 
+                    : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-amber-200 dark:hover:border-amber-700'
                 }`}
               >
                 {/* Badge */}
@@ -128,17 +128,17 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPlan === 'lifetime' ? 'border-amber-500 bg-amber-500' : 'border-gray-300'}`}>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPlan === 'lifetime' ? 'border-amber-500 bg-amber-500' : 'border-gray-300 dark:border-gray-500'}`}>
                      {selectedPlan === 'lifetime' && <div className="w-2 h-2 bg-white rounded-full"></div>}
                   </div>
                   <div>
-                    <span className="font-bold text-gray-900 block pt-2">مدى الحياة</span>
-                    <span className="text-xs text-gray-500">دفعة واحدة فقط، لا اشتراكات</span>
+                    <span className="font-bold text-gray-900 dark:text-white block pt-2">مدى الحياة</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">دفعة واحدة فقط، لا اشتراكات</span>
                   </div>
                 </div>
                 <div className="text-right pt-2">
-                  <span className="text-xs text-gray-400 line-through block">120 ر.س</span>
-                  <span className="font-bold text-amber-700 text-lg">49.99 ر.س</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 line-through block">120 ر.س</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-500 text-lg">49.99 ر.س</span>
                 </div>
               </div>
             </div>
@@ -146,13 +146,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
         </div>
 
         {/* Footer / CTA */}
-        <div className="p-6 bg-white border-t border-gray-100 shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="p-6 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
            <button 
               onClick={onSubscribe}
               className={`w-full py-4 font-black text-lg rounded-xl shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-white
                 ${selectedPlan === 'lifetime' 
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-amber-200' 
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-amber-200 dark:shadow-none' 
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none'
                 }`}
             >
               <span>
@@ -162,12 +162,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z" clipRule="evenodd" />
               </svg>
             </button>
-            <div className="flex justify-between items-center mt-4 text-[10px] text-gray-400 px-2">
-              <button className="hover:text-gray-600 underline">استعادة المشتريات</button>
+            <div className="flex justify-between items-center mt-4 text-[10px] text-gray-400 dark:text-gray-500 px-2">
+              <button className="hover:text-gray-600 dark:hover:text-gray-300 underline">استعادة المشتريات</button>
               <div className="space-x-2 space-x-reverse">
-                <button className="hover:text-gray-600">الشروط</button>
+                <button className="hover:text-gray-600 dark:hover:text-gray-300">الشروط</button>
                 <span>•</span>
-                <button className="hover:text-gray-600">الخصوصية</button>
+                <button className="hover:text-gray-600 dark:hover:text-gray-300">الخصوصية</button>
               </div>
             </div>
         </div>
