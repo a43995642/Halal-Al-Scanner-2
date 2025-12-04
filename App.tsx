@@ -497,38 +497,40 @@ function App() {
 
       <header className="bg-emerald-600 text-white pt-[calc(1.5rem+env(safe-area-inset-top))] pb-6 px-6 shadow-lg rounded-b-3xl mb-8 sticky top-0 z-40 transition-colors duration-500">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold mb-1 flex items-center gap-2">
+          {/* Title Section: Added min-w-0 to allow text truncation if needed */}
+          <div className="min-w-0 flex-1 pl-4"> 
+            <h1 className="text-2xl font-bold mb-1 whitespace-nowrap leading-tight">
               فاحص الحلال
-              {isPremium && (
-                <span className="bg-amber-400 text-amber-900 text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">PRO</span>
-              )}
             </h1>
-            <p className="text-emerald-100 text-sm">Halal Scanner AI</p>
+            <p className="text-emerald-100 text-sm truncate">Halal Scanner AI</p>
           </div>
-          <div className="flex gap-3 items-center">
+          
+          {/* Controls Section */}
+          <div className="flex gap-2 sm:gap-3 items-center shrink-0">
              {!isPremium ? (
                <div 
                  onClick={() => setShowSubscriptionModal(true)}
                  className="flex flex-col items-end justify-center cursor-pointer"
                >
                  <div className="bg-white/20 px-3 py-1 rounded-full border border-white/10 hover:bg-white/30 transition">
-                   <span className="text-xs font-bold text-white">
+                   <span className="text-xs font-bold text-white whitespace-nowrap">
                       {Math.max(0, FREE_SCANS_LIMIT - scanCount)} مجاناً
                    </span>
                  </div>
                </div>
              ) : (
                 <div className="flex flex-col items-end justify-center">
-                  <div className="bg-amber-400/20 px-3 py-1 rounded-full border border-amber-400/50">
-                    <span className="text-xs font-bold text-amber-100">نسخة كاملة</span>
+                  {/* Consolidated Badge: PRO + Text */}
+                  <div className="bg-amber-400 text-amber-900 px-2 sm:px-3 py-1 rounded-full shadow-sm border border-amber-300 flex items-center gap-1.5">
+                    <span className="font-black text-[10px] bg-white/20 px-1 rounded-[4px]">PRO</span>
+                    <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap">نسخة كاملة</span>
                   </div>
                 </div>
              )}
 
              <button 
                onClick={() => setShowOnboarding(true)}
-               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition"
+               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
                aria-label="كيف يعمل"
              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -538,7 +540,7 @@ function App() {
 
              <button 
                onClick={() => setShowHistory(true)} 
-               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition"
+               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
                aria-label="السجل"
              >
                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
