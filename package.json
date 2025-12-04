@@ -11,8 +11,8 @@
     "cap:sync": "cap sync",
     "cap:open": "cap open android",
     "clean-setup": "rm -rf node_modules package-lock.json android && npm install && npm run build && npx cap add android && npx cap sync",
-    "fix-android": "mkdir -p scripts && chmod +x scripts/fix-android.sh && ./scripts/fix-android.sh",
-    "build-apk": "npm run fix-android && npm run build && npx cap sync && echo 'sdk.dir=/usr/lib/android-sdk' > android/local.properties && chmod +x android/gradlew && (cd android && ./gradlew assembleDebug)"
+    "setup-android": "chmod +x setup-android.sh && ./setup-android.sh",
+    "build-apk": "npm run setup-android && npm run build && npx cap sync && chmod +x android/gradlew && (cd android && ./gradlew assembleDebug)"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
