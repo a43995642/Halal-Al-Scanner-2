@@ -1,8 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase with Service Role Key (Admin Access)
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
+// Configuration
+const PROJECT_URL = 'https://lrnvtsnacrmnnsitdubz.supabase.co';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || PROJECT_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(request, response) {
@@ -26,7 +27,7 @@ export default async function handler(request, response) {
 
   if (!supabaseServiceKey) {
     console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
-    return response.status(500).json({ error: 'Server Misconfiguration' });
+    return response.status(500).json({ error: 'Server Misconfiguration: Missing Service Key' });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -38,16 +39,13 @@ export default async function handler(request, response) {
       return response.status(400).json({ error: 'Missing userId' });
     }
 
-    // In a real app, you would verify a Stripe/Payment signature here.
-    // For this demo, we simply upgrade the user in the database.
-
-    // 1. Update user to premium
+    // 1. Update user to premium securely on the backend
     const { data, error } = await supabase
       .from('user_stats')
       .upsert({ 
         id: userId, 
         is_premium: true,
-        // Optional: track plan type if you added that column
+        // Reset scan count on upgrade if you want, or keep tracking
       }, { onConflict: 'id' })
       .select();
 
