@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera } from './components/Camera';
 import { StatusBadge } from './components/StatusBadge';
@@ -5,6 +6,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { analyzeImage } from './services/geminiService';
 import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail } from './types';
+import { secureStorage } from './utils/secureStorage';
 
 // Constants
 const FREE_SCANS_LIMIT = 3;
@@ -228,12 +230,12 @@ function App() {
       }
     }
 
-    // Subscription & Usage
-    const savedIsPremium = localStorage.getItem('halalScannerIsPremium');
-    if (savedIsPremium === 'true') setIsPremium(true);
+    // Subscription & Usage (SECURED)
+    const savedIsPremium = secureStorage.getItem<boolean>('isPremium', false);
+    setIsPremium(savedIsPremium);
 
-    const savedScanCount = localStorage.getItem('halalScannerCount');
-    if (savedScanCount) setScanCount(parseInt(savedScanCount, 10));
+    const savedScanCount = secureStorage.getItem<number>('scanCount', 0);
+    setScanCount(savedScanCount);
 
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
@@ -270,7 +272,7 @@ function App() {
   const handleSubscribe = async () => {
     console.log("Simulating purchase success...");
     setIsPremium(true);
-    localStorage.setItem('halalScannerIsPremium', 'true');
+    secureStorage.setItem('isPremium', true); // Secure Write
     setShowSubscriptionModal(false);
     showToast('تم تفعيل النسخة الكاملة بنجاح!');
     vibrate([50, 100, 50]);
@@ -281,7 +283,7 @@ function App() {
     
     const newCount = scanCount + 1;
     setScanCount(newCount);
-    localStorage.setItem('halalScannerCount', newCount.toString());
+    secureStorage.setItem('scanCount', newCount); // Secure Write
   };
 
   const saveToHistory = (scanResult: ScanResult, thumbnail?: string) => {
@@ -406,8 +408,15 @@ function App() {
         return;
       }
       
-      // Fix: Cast to File[] to prevent 'unknown' type error in loop for readAsDataURL
       const filesToProcess = Array.from(e.target.files).slice(0, remainingSlots) as File[];
+
+      // Validate File Types
+      const invalidFiles = filesToProcess.filter(file => !file.type.startsWith('image/'));
+      if (invalidFiles.length > 0) {
+         showToast("يرجى اختيار صور فقط (JPG, PNG)");
+         e.target.value = '';
+         return;
+      }
 
       setIsLoading(true); // Temporary loading state while reading files
       setError(null);
@@ -714,7 +723,7 @@ function App() {
                   <input 
                     type="file" 
                     accept="image/*" 
-                    multiple // Allow multiple files
+                    multiple 
                     onChange={handleFileSelect} 
                     className="hidden" 
                     disabled={!isPremium && scanCount >= FREE_SCANS_LIMIT}
