@@ -14,6 +14,9 @@
     "setup-android": "npx cap add android || echo 'Android platform already exists'",
     "build-apk": "npm install && npm run setup-android && npm run build && npx cap sync && node update-manifest.js && cd android && chmod +x gradlew && ./gradlew assembleDebug"
   },
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
