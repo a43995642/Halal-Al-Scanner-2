@@ -153,7 +153,7 @@ const enhanceImage = (base64Str: string): Promise<string> => {
 };
 
 export const analyzeImage = async (
-  base64Image: string, 
+  base64Images: string[], 
   enhance: boolean = false,
   enableImageDownscaling: boolean = false
 ): Promise<ScanResult> => {
@@ -171,36 +171,47 @@ export const analyzeImage = async (
     // Guidelines require strictly using process.env.API_KEY
     const ai = new GoogleGenAI({ apiKey: apiKey });
 
-    let processedImage = base64Image;
-
-    // 1. Downscale if enabled (Limit to 2000x2000)
-    if (enableImageDownscaling) {
-      try {
-        processedImage = await downscaleImageIfNeeded(processedImage, 2000, 2000);
-      } catch (error) {
-        console.warn("Failed to downscale image, using original", error);
+    // Process all images concurrently
+    const processedParts = await Promise.all(base64Images.map(async (img) => {
+      let processed = img;
+      
+      // 1. Downscale
+      if (enableImageDownscaling) {
+        try {
+          processed = await downscaleImageIfNeeded(processed, 2000, 2000);
+        } catch (error) {
+          console.warn("Failed to downscale image, using original", error);
+        }
       }
-    }
 
-    // 2. Enhance if enabled
-    if (enhance) {
-      try {
-        processedImage = await enhanceImage(processedImage);
-      } catch (error) {
-        console.warn("Failed to enhance image, using original", error);
+      // 2. Enhance
+      if (enhance) {
+        try {
+          processed = await enhanceImage(processed);
+        } catch (error) {
+          console.warn("Failed to enhance image, using original", error);
+        }
       }
-    }
 
-    // Remove the data URL prefix
-    const cleanBase64 = processedImage.replace(/^data:image\/(png|jpg|jpeg|webp);base64,/, "");
+      // Clean Base64
+      const cleanBase64 = processed.replace(/^data:image\/(png|jpg|jpeg|webp);base64,/, "");
+      
+      return {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: cleanBase64,
+        },
+      };
+    }));
 
     const systemInstruction = `
     أنت خبير تدقيق غذائي إسلامي. مهمتك هي فحص المنتجات الغذائية بدقة متناهية.
+    تم تزويدك بصورة واحدة أو عدة صور لنفس المنتج. قم بدمج المعلومات من جميع الصور لتحليل المكونات.
     
     **المرحلة 0: التحقق من نوع الصورة:**
     1. **تجاهل الباركود:** وجود الباركود في الصورة طبيعي. لا ترفض الصورة بسبب وجود باركود.
-    2. **المنتجات غير الغذائية:** فقط إذا كانت الصورة واضحة تماماً لشيء ليس طعاماً (مثل سيارة، إلكترونيات، ملابس)، تكون النتيجة NON_FOOD.
-    3. **قائمة المكونات:** ابحث بذكاء عن أي نص يشير إلى مكونات (Ingredients, Ingrédients, المكونات, المحتويات).
+    2. **المنتجات غير الغذائية:** فقط إذا كانت الصور واضحة تماماً لشيء ليس طعاماً (مثل سيارة، إلكترونيات، ملابس)، تكون النتيجة NON_FOOD.
+    3. **قائمة المكونات:** ابحث بذكاء عن أي نص يشير إلى مكونات (Ingredients, Ingrédients, المكونات, المحتويات) في جميع الصور.
     
     **المرحلة 1: تحليل المكونات:**
     
@@ -247,14 +258,9 @@ export const analyzeImage = async (
       model: "gemini-2.5-flash",
       contents: {
         parts: [
+          ...processedParts,
           {
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: cleanBase64,
-            },
-          },
-          {
-            text: "قم بتحليل المكونات في هذه الصورة وتحديد ما إذا كانت حلالاً أم لا.",
+            text: "قم بتحليل المكونات في هذه الصور وتحديد ما إذا كان المنتج حلالاً أم لا.",
           },
         ],
       },
