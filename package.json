@@ -11,13 +11,14 @@
     "cap:sync": "cap sync",
     "cap:open": "cap open android",
     "clean-setup": "rm -rf node_modules package-lock.json android && npm install && npm run build && npx cap add android && npx cap sync",
-    "setup-android": "chmod +x setup-android.sh && ./setup-android.sh",
-    "build-apk": "npm run setup-android && npm run build && npx cap sync && chmod +x android/gradlew && (cd android && ./gradlew assembleDebug)"
+    "setup-android": "npx cap add android || echo 'Android platform already exists'",
+    "build-apk": "npm install && npm run setup-android && npm run build && npx cap sync && node update-manifest.js && cd android && chmod +x gradlew && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
     "@capacitor/core": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
     "@google/genai": "latest",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
