@@ -6,6 +6,18 @@
     <!-- Updated Viewport: Added user-scalable=no and maximum-scale=1.0 to prevent zooming inside WebView -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     
+    <!-- Security: Content Security Policy -->
+    <!-- Allow scripts from self and trusted CDNs. Connect to Google APIs allowed. -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self'; 
+      script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://aistudiocdn.com; 
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+      font-src 'self' https://fonts.gstatic.com; 
+      img-src 'self' data: blob: https://raw.githubusercontent.com; 
+      connect-src 'self' https://generativelanguage.googleapis.com;
+      worker-src 'self' blob:;
+    ">
+
     <!-- iOS specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -110,7 +122,8 @@
     "@capacitor/camera": "https://aistudiocdn.com/@capacitor/camera@^7.0.2",
     "@capacitor/core": "https://aistudiocdn.com/@capacitor/core@^7.4.4",
     "fs": "https://aistudiocdn.com/fs@^0.0.1-security",
-    "path": "https://aistudiocdn.com/path@^0.12.7"
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2"
   }
 }
 </script>
