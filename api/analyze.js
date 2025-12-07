@@ -77,7 +77,7 @@ export default async function handler(request, response) {
     }
 
     // --- SECURITY CHECK 2: API Key ---
-    const apiKey = process.env.GEMINI_API_KEY; 
+    const apiKey = process.env.API_KEY; 
     if (!apiKey) {
       console.error("Server missing API Key");
       return response.status(500).json({ error: 'Configuration Error: Missing API Key' });
