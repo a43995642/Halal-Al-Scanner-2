@@ -10,11 +10,11 @@
     <!-- Allow scripts from self and trusted CDNs. Connect to Google APIs allowed. -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self'; 
-      script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://aistudiocdn.com; 
+      script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; 
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
       font-src 'self' https://fonts.gstatic.com; 
       img-src 'self' data: blob: https://raw.githubusercontent.com; 
-      connect-src 'self' https://generativelanguage.googleapis.com;
+      connect-src 'self' https://generativelanguage.googleapis.com https://*.supabase.co;
       worker-src 'self' blob:;
     ">
 
@@ -112,18 +112,18 @@
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "vite": "https://aistudiocdn.com/vite@^7.2.6",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "@capacitor/cli": "https://aistudiocdn.com/@capacitor/cli@^7.4.4",
-    "@capacitor/camera": "https://aistudiocdn.com/@capacitor/camera@^7.0.2",
     "@capacitor/core": "https://aistudiocdn.com/@capacitor/core@^7.4.4",
-    "fs": "https://aistudiocdn.com/fs@^0.0.1-security",
     "path": "https://aistudiocdn.com/path@^0.12.7",
-    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2"
+    "@capacitor/cli": "https://aistudiocdn.com/@capacitor/cli@^7.4.4",
+    "fs": "https://aistudiocdn.com/fs@^0.0.1-security",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.2",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "@capacitor/camera": "https://aistudiocdn.com/@capacitor/camera@^7.0.2"
   }
 }
 </script>

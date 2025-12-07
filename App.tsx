@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera } from './components/Camera';
 import { StatusBadge } from './components/StatusBadge';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { OnboardingModal } from './components/OnboardingModal';
-import { analyzeImage } from './services/geminiService';
+import { analyzeImage, analyzeText } from './services/geminiService';
 import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail } from './types';
 import { secureStorage } from './utils/secureStorage';
 import { supabase } from './lib/supabase';
@@ -119,7 +120,7 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
                    ) : (
                      <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-gray-400 dark:text-slate-600">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
                         </svg>
                      </div>
                    )}
@@ -158,10 +159,56 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
   );
 };
 
+// Text Input Modal
+const TextInputModal = ({ onClose, onAnalyze }: { onClose: () => void, onAnalyze: (text: string) => void }) => {
+  const [text, setText] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl animate-slide-up flex flex-col overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+           <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-emerald-600">
+               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+             </svg>
+             إدخال المكونات يدوياً
+           </h3>
+           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+             </svg>
+           </button>
+        </div>
+        <div className="p-4">
+           <textarea
+             className="w-full h-40 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none dark:text-white placeholder-gray-400"
+             placeholder="الصق المكونات هنا... (مثال: E120, Gelatin, ماء، سكر)"
+             value={text}
+             onChange={(e) => setText(e.target.value)}
+             autoFocus
+           />
+           <p className="text-xs text-gray-500 mt-2">يمكنك كتابة أرقام المواد المضافة (E-Numbers) أو أسماء المكونات.</p>
+        </div>
+        <div className="p-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex gap-3">
+           <button 
+             onClick={() => onAnalyze(text)}
+             disabled={!text.trim()}
+             className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-900/10"
+           >
+             فحص النص
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   // CHANGED: Manage an array of images instead of a single string
   const [images, setImages] = useState<string[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [showTextModal, setShowTextModal] = useState(false); // New State for Text Modal
+
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -553,6 +600,58 @@ function App() {
     setIsCameraOpen(true);
   };
 
+  // Helper for text analysis (Manual Input)
+  const handleAnalyzeText = async (text: string) => {
+    vibrate(50);
+    setShowTextModal(false);
+
+    if (!isPremium && scanCount >= FREE_SCANS_LIMIT) {
+      setShowSubscriptionModal(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+    setImages([]); // Clear images if text is used
+    setProgress(20);
+
+    try {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      progressInterval.current = setInterval(() => {
+        setProgress(prev => (prev >= 90 ? 90 : prev + 5));
+      }, 150);
+
+      const scanResult = await analyzeText(text, userId || undefined);
+      
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      setProgress(100);
+
+      if (scanResult.confidence === 0) {
+         setError(scanResult.reason);
+      } else {
+         vibrate([50, 100]);
+         setResult(scanResult);
+         
+         if (userId) await fetchUserStats(userId);
+         else setScanCount(prev => prev + 1);
+
+         saveToHistory(scanResult); // No thumbnail for text
+      }
+    } catch (err: any) {
+       console.error("Text Analysis Error", err);
+       if (progressInterval.current) clearInterval(progressInterval.current);
+       let errorMessage = "حدث خطأ غير متوقع.";
+       if (err.message.includes("LIMIT_REACHED")) {
+         setShowSubscriptionModal(true);
+         errorMessage = "انتهت المحاولات المجانية.";
+       }
+       setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAnalyze = async () => {
     vibrate(50); // Tactile click feel
     
@@ -661,6 +760,7 @@ function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans flex flex-col transition-colors duration-300">
       {showOnboarding && <OnboardingModal onFinish={handleOnboardingFinish} />}
       {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} onLoadItem={loadHistoryItem} />}
+      {showTextModal && <TextInputModal onClose={() => setShowTextModal(false)} onAnalyze={handleAnalyzeText} />}
       
       {showSubscriptionModal && (
         <SubscriptionModal 
@@ -791,11 +891,10 @@ function App() {
               </div>
 
               <p className="text-gray-500 dark:text-gray-400 text-center font-medium">
-                 التقط صوراً للمنتج للتحقق من المكونات. <br/>
-                 <span className="text-xs opacity-75">يمكنك إضافة حتى 4 صور لنفس المنتج</span>
+                 التقط صوراً للمنتج أو أدخل المكونات للتحقق. <br/>
               </p>
               
-              <div className="grid grid-cols-2 gap-4 w-full">
+              <div className="grid grid-cols-2 gap-3 w-full">
                 <button 
                   onClick={openCamera}
                   className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all active:scale-95 ${
@@ -829,6 +928,21 @@ function App() {
                   <span className="font-bold">معرض الصور</span>
                 </label>
               </div>
+
+              {/* Text Input Option */}
+               <button 
+                  onClick={() => setShowTextModal(true)}
+                  className={`w-full flex items-center justify-center gap-2 p-4 rounded-xl border transition-all active:scale-95 ${
+                    !isPremium && scanCount >= FREE_SCANS_LIMIT 
+                    ? 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-400 dark:text-gray-600 grayscale' 
+                    : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                  </svg>
+                  <span className="font-bold">كتابة المكونات يدوياً</span>
+              </button>
             </div>
           )}
 
@@ -880,10 +994,19 @@ function App() {
               )}
 
               {/* Main Preview (Only shows the first image large if result is present, or scanning animation) */}
-              {(result || isLoading) && images.length > 0 && (
+              {(result || isLoading) && (
                 <div className={`relative rounded-xl overflow-hidden shadow-md mb-6 bg-gray-900 group shrink-0 flex items-center justify-center min-h-[250px]`}>
-                  {/* Show just the first image as main preview context */}
-                  <img src={images[0]} alt="Preview" className="w-full h-full object-contain max-h-[400px]" />
+                  {/* Show preview context if images exist, else show placeholder for text scan */}
+                  {images.length > 0 ? (
+                      <img src={images[0]} alt="Preview" className="w-full h-full object-contain max-h-[400px]" />
+                  ) : (
+                      <div className="flex flex-col items-center justify-center p-8 text-white/50">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-20 h-20 mb-4 opacity-30">
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                         </svg>
+                         <p className="text-sm">تحليل النص...</p>
+                      </div>
+                  )}
                   
                   {images.length > 1 && (
                      <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md z-20">
@@ -964,9 +1087,9 @@ function App() {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">جاري التحليل العميق لـ {images.length} صور...</h3>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">جاري التحليل العميق...</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[90%] mx-auto">
-                       نقوم بفحص كل مكون بدقة لضمان النتيجة. هذا قد يستغرق وقتاً إضافياً.
+                       نقوم بفحص كل مكون بدقة لضمان النتيجة.
                     </p>
                   </div>
                 )}
@@ -983,12 +1106,14 @@ function App() {
                           <h4 className="text-sm font-bold text-red-800 dark:text-red-200 mb-1">تعذر التحليل</h4>
                           <p className="text-xs text-red-600 dark:text-red-300 mb-3 leading-relaxed">{error}</p>
                           <div className="flex gap-2">
-                            <button 
-                              onClick={handleAnalyze}
-                              className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm active:scale-95 transition"
-                            >
-                              {useLowQuality ? 'محاولة (ضغط عالي)' : 'إعادة المحاولة'}
-                            </button>
+                            {images.length > 0 && (
+                                <button 
+                                onClick={handleAnalyze}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm active:scale-95 transition"
+                                >
+                                {useLowQuality ? 'محاولة (ضغط عالي)' : 'إعادة المحاولة'}
+                                </button>
+                            )}
                             <button 
                               onClick={resetApp}
                               className="bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs font-bold py-2.5 px-3 rounded-lg active:scale-95 transition"

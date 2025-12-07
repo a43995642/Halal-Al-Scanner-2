@@ -1,4 +1,5 @@
 
+
 import { HalalStatus, ScanResult } from "../types";
 
 // Helper to downscale image if dimensions exceed limits (Client Side Processing)
@@ -45,24 +46,19 @@ export const analyzeImage = async (
   
   try {
     // 1. Client-Side Optimization (Resize/Process)
-    // We do this here to save bandwidth before sending to our Vercel Backend
     const processedImages = await Promise.all(base64Images.map(async (img) => {
       let processed = img;
       if (enableImageDownscaling) {
         processed = await downscaleImageIfNeeded(processed, 1500, 1500);
       }
-      // Strip prefix for API
       return processed.replace(/^data:image\/(png|jpg|jpeg|webp);base64,/, "");
     }));
 
     // 2. Call our Secure Backend Proxy
-    // Note: In development, this expects the Vercel function to be running 
-    // via `vercel dev` or accessible at /api/analyze
     const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            // Send user ID to backend to track usage quotas via Supabase
             'x-user-id': userId || 'anonymous'
         },
         body: JSON.stringify({
@@ -72,12 +68,9 @@ export const analyzeImage = async (
 
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        
-        // Handle specific backend errors
         if (response.status === 403 && (errData.error === 'LIMIT_REACHED')) {
             throw new Error("LIMIT_REACHED"); 
         }
-        
         throw new Error(errData.error || `Server Error: ${response.status}`);
     }
 
@@ -86,19 +79,58 @@ export const analyzeImage = async (
 
   } catch (error: any) {
     console.error("Error analyzing image:", error);
-    
-    // Pass through specific limit errors so UI can show Subscription Modal
-    if (error.message === "LIMIT_REACHED") {
-        throw error; 
-    }
+    if (error.message === "LIMIT_REACHED") throw error;
     
     let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
-
     if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
         userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";
     }
 
-    // Return a fallback error result structure
+    return {
+      status: HalalStatus.NON_FOOD,
+      reason: userMessage,
+      ingredientsDetected: [],
+      confidence: 0, 
+    };
+  }
+};
+
+export const analyzeText = async (
+  text: string, 
+  userId?: string
+): Promise<ScanResult> => {
+  try {
+    const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId || 'anonymous'
+        },
+        body: JSON.stringify({
+            text: text
+        })
+    });
+
+    if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        if (response.status === 403 && (errData.error === 'LIMIT_REACHED')) {
+            throw new Error("LIMIT_REACHED"); 
+        }
+        throw new Error(errData.error || `Server Error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result as ScanResult;
+
+  } catch (error: any) {
+    console.error("Error analyzing text:", error);
+    if (error.message === "LIMIT_REACHED") throw error;
+    
+    let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
+    if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
+        userMessage = "خطأ في الاتصال بالخادم.";
+    }
+
     return {
       status: HalalStatus.NON_FOOD,
       reason: userMessage,
