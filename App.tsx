@@ -7,6 +7,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { analyzeImage } from './services/geminiService';
 import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail } from './types';
 import { secureStorage } from './utils/secureStorage';
+import { supabase } from './lib/supabase';
 
 // Constants
 const FREE_SCANS_LIMIT = 3;
@@ -167,6 +168,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [useLowQuality, setUseLowQuality] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isUpgrading, setIsUpgrading] = useState(false);
   
   // Onboarding & Terms
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -175,9 +177,10 @@ function App() {
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Subscription State
+  // Subscription State (Supabase Integrated)
   const [isPremium, setIsPremium] = useState(false);
   const [scanCount, setScanCount] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   
   // Theme State
@@ -199,7 +202,7 @@ function App() {
 
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initialize: Load terms, History & Subscription Status
+  // Initialize: Load terms, History & Supabase Auth
   useEffect(() => {
     // Terms / Onboarding
     const accepted = localStorage.getItem('halalScannerTermsAccepted');
@@ -230,17 +233,65 @@ function App() {
       }
     }
 
-    // Subscription & Usage (SECURED)
-    const savedIsPremium = secureStorage.getItem<boolean>('isPremium', false);
-    setIsPremium(savedIsPremium);
+    // Initialize Supabase Auth & Fetch Data
+    const initSupabase = async () => {
+      try {
+        // 1. Get Session or Sign In Anonymously
+        const { data: { session } } = await supabase.auth.getSession();
+        let uid = session?.user?.id;
 
-    const savedScanCount = secureStorage.getItem<number>('scanCount', 0);
-    setScanCount(savedScanCount);
+        if (!uid) {
+          // Attempt Anonymous Sign-In
+          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+          if (anonError) {
+             console.error("Auth Error:", anonError);
+             // Fallback to local storage if auth fails (offline mode)
+             const savedScanCount = secureStorage.getItem<number>('scanCount', 0);
+             setScanCount(savedScanCount);
+             return;
+          }
+          uid = anonData?.user?.id;
+        }
+
+        if (uid) {
+          setUserId(uid);
+          // 2. Fetch User Stats from DB
+          await fetchUserStats(uid);
+        }
+      } catch (err) {
+        console.error("Supabase Init Failed:", err);
+      }
+    };
+
+    // Load cached premium status immediately for UI responsiveness
+    const cachedPremium = secureStorage.getItem<boolean>('isPremium', false);
+    setIsPremium(cachedPremium);
+
+    initSupabase();
 
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
     };
   }, []);
+
+  // Fetch Stats Helper
+  const fetchUserStats = async (uid: string) => {
+      const { data, error } = await supabase
+        .from('user_stats')
+        .select('scan_count, is_premium')
+        .eq('id', uid)
+        .single();
+
+      if (data) {
+        setScanCount(data.scan_count);
+        setIsPremium(data.is_premium);
+        // Update local cache
+        secureStorage.setItem('isPremium', data.is_premium);
+      } else if (error && error.code === 'PGRST116') {
+        // User has no stats row yet, will be created on first scan by backend
+        setScanCount(0);
+      }
+  };
 
   // Theme Effect
   useEffect(() => {
@@ -270,20 +321,41 @@ function App() {
   };
 
   const handleSubscribe = async () => {
-    console.log("Simulating purchase success...");
-    setIsPremium(true);
-    secureStorage.setItem('isPremium', true); // Secure Write
-    setShowSubscriptionModal(false);
-    showToast('تم تفعيل النسخة الكاملة بنجاح!');
-    vibrate([50, 100, 50]);
-  };
+    // 1. Check if we have a user
+    if (!userId) {
+       showToast("جاري تهيئة المستخدم... حاول مرة أخرى");
+       return;
+    }
 
-  const incrementScanCount = () => {
-    if (isPremium) return;
+    setIsUpgrading(true);
     
-    const newCount = scanCount + 1;
-    setScanCount(newCount);
-    secureStorage.setItem('scanCount', newCount); // Secure Write
+    try {
+      // 2. Call the secure backend to upgrade
+      const response = await fetch('/api/mock-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId: userId, plan: 'lifetime' })
+      });
+
+      if (!response.ok) {
+        throw new Error('Upgrade failed');
+      }
+
+      // 3. If successful, update local state
+      setIsPremium(true);
+      secureStorage.setItem('isPremium', true); 
+      setShowSubscriptionModal(false);
+      showToast('تم تفعيل النسخة الكاملة!');
+      vibrate([50, 100, 50]);
+
+    } catch (error) {
+      console.error("Upgrade error", error);
+      showToast("فشل التفعيل. تحقق من الاتصال.");
+    } finally {
+      setIsUpgrading(false);
+    }
   };
 
   const saveToHistory = (scanResult: ScanResult, thumbnail?: string) => {
@@ -483,6 +555,8 @@ function App() {
 
   const handleAnalyze = async () => {
     vibrate(50); // Tactile click feel
+    
+    // Strict Client Check (UI only)
     if (!isPremium && scanCount >= FREE_SCANS_LIMIT) {
       setShowSubscriptionModal(true);
       return;
@@ -517,8 +591,8 @@ function App() {
         });
       }, 200);
 
-      // Pass array to service
-      const scanResult = await analyzeImage(compressedImages, true, true);
+      // Pass array to service + userId
+      const scanResult = await analyzeImage(compressedImages, userId || undefined, true, true);
       
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
@@ -533,7 +607,14 @@ function App() {
          // Success!
          vibrate([50, 100]); 
          setResult(scanResult);
-         incrementScanCount();
+         
+         // Refresh Stats from Server to get correct count
+         if (userId) {
+            await fetchUserStats(userId);
+         } else {
+           // Fallback for offline/no-auth
+           setScanCount(prev => prev + 1);
+         }
 
          // Save first image as thumbnail
          compressImage(compressedImages[0], 200, 0.6).then(thumb => {
@@ -550,7 +631,11 @@ function App() {
       let errorMessage = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
       if (err instanceof Error || (typeof err === 'object' && err !== null)) {
          const msg = (err.message || JSON.stringify(err)).toLowerCase();
-         if (msg.includes('network') || msg.includes('fetch')) errorMessage = "تعذر الاتصال بالإنترنت.";
+         if (msg.includes('limit_reached')) {
+             setShowSubscriptionModal(true);
+             errorMessage = "لقد استنفدت المحاولات المجانية. يرجى الترقية.";
+         }
+         else if (msg.includes('network') || msg.includes('fetch')) errorMessage = "تعذر الاتصال بالخادم. تحقق من الإنترنت.";
          else if (msg.includes('413') || msg.includes('rpc')) {
              setUseLowQuality(true);
              errorMessage = "حجم الصورة كبير جداً.";
@@ -583,6 +668,16 @@ function App() {
           onClose={() => setShowSubscriptionModal(false)}
           isLimitReached={!isPremium && scanCount >= FREE_SCANS_LIMIT}
         />
+      )}
+      
+      {/* Loading Overlay for Upgrade */}
+      {isUpgrading && (
+        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fade-in">
+           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl flex flex-col items-center">
+              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="font-bold text-gray-800 dark:text-white">جاري تفعيل الاشتراك...</p>
+           </div>
+        </div>
       )}
 
       {/* Toast Notification */}

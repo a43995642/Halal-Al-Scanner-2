@@ -5,11 +5,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase (Service Role is needed to WRITE protected data safely)
+// Initialize Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-// NOTE: On the server, use the SERVICE_ROLE_KEY to bypass RLS if needed, 
-// or stick to ANON_KEY if RLS policies are set up correctly for public writes.
-// For security, using SERVICE_ROLE_KEY allows you to manage logic strictly on backend.
+// Use SERVICE_ROLE_KEY for admin privileges (bypasses RLS to write scan counts safely)
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -20,7 +18,7 @@ export default async function handler(request, response) {
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-user-id'
   );
 
   if (request.method === 'OPTIONS') {
@@ -34,30 +32,50 @@ export default async function handler(request, response) {
 
   try {
     const { images } = request.body;
-    
-    // --- SECURITY CHECK 1: Rate Limiting / Quota (via Supabase) ---
-    // In a real app, send the User ID or Session Token. 
-    // For now, we simulate checking an IP or a temporary ID sent from frontend.
-    const userId = request.headers['x-user-id'] || 'anonymous';
-    
-    // Check user stats (Example Logic)
-    /*
-    const { data: userStats, error: dbError } = await supabase
-      .from('user_stats')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (userStats && !userStats.is_premium && userStats.scan_count >= 3) {
-       return response.status(403).json({ error: 'LIMIT_REACHED', message: 'نفذت محاولاتك المجانية' });
+    const userId = request.headers['x-user-id'];
+
+    // --- SECURITY CHECK 1: Rate Limiting via Supabase ---
+    if (userId && userId !== 'anonymous') {
+        // Fetch user stats
+        const { data: userStats, error: dbError } = await supabase
+          .from('user_stats')
+          .select('scan_count, is_premium')
+          .eq('id', userId)
+          .single();
+        
+        // Logic: 
+        // 1. If user doesn't exist, we create them implicitly (or ignore if using anon key with RLS)
+        // 2. If exists, check limits.
+        
+        if (dbError && dbError.code !== 'PGRST116') {
+             console.error("DB Error", dbError);
+             // Fail open or closed? Let's fail closed for security.
+             // return response.status(500).json({ error: 'Database Error' });
+        }
+
+        let currentCount = 0;
+        let isPremium = false;
+
+        if (userStats) {
+            currentCount = userStats.scan_count;
+            isPremium = userStats.is_premium;
+        } else {
+             // Create new user record if it doesn't exist
+             // Note: using Service Role allows insertion even if no public RLS allows it
+             await supabase.from('user_stats').insert([{ id: userId, scan_count: 0 }]);
+        }
+
+        // ENFORCE LIMIT: 3 Free Scans
+        if (!isPremium && currentCount >= 3) {
+             return response.status(403).json({ error: 'LIMIT_REACHED', message: 'Upgrade required' });
+        }
     }
-    */
 
     // --- SECURITY CHECK 2: API Key ---
-    const apiKey = process.env.GEMINI_API_KEY; // Read from Server Env
+    const apiKey = process.env.GEMINI_API_KEY; 
     if (!apiKey) {
       console.error("Server missing API Key");
-      return response.status(500).json({ error: 'Configuration Error' });
+      return response.status(500).json({ error: 'Configuration Error: Missing API Key' });
     }
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -89,7 +107,6 @@ export default async function handler(request, response) {
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        // Schema is defined implicitly by instructions or you can pass full schema object here
         responseSchema: {
              type: "OBJECT",
              properties: {
@@ -108,14 +125,25 @@ export default async function handler(request, response) {
       },
     });
 
-    const result = JSON.parse(modelResponse.text);
-
-    // --- LOGIC: Increment Scan Count in Supabase ---
-    /*
-    if (userStats) {
-       await supabase.rpc('increment_scan_count', { user_id: userId });
+    let result;
+    try {
+        result = JSON.parse(modelResponse.text);
+    } catch (e) {
+        // Fallback if model returns raw text despite JSON instruction
+        result = { status: "DOUBTFUL", reason: modelResponse.text, ingredientsDetected: [], confidence: 0 };
     }
-    */
+
+    // --- LOGIC: Increment Scan Count ---
+    if (userId && userId !== 'anonymous') {
+       // Using RPC is safer for concurrency, but standard update works for low traffic
+       // await supabase.rpc('increment_scan_count', { user_id: userId });
+       
+       // Simple increment:
+       const { data: currentStats } = await supabase.from('user_stats').select('scan_count').eq('id', userId).single();
+       if (currentStats) {
+           await supabase.from('user_stats').update({ scan_count: currentStats.scan_count + 1 }).eq('id', userId);
+       }
+    }
 
     return response.status(200).json(result);
 

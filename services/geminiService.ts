@@ -38,6 +38,7 @@ const downscaleImageIfNeeded = (base64Str: string, maxWidth: number, maxHeight: 
 
 export const analyzeImage = async (
   base64Images: string[], 
+  userId?: string,
   enhance: boolean = false,
   enableImageDownscaling: boolean = false
 ): Promise<ScanResult> => {
@@ -61,8 +62,8 @@ export const analyzeImage = async (
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            // Optional: Send a client ID or token here if you implement Auth
-            // 'x-user-id': localStorage.getItem('userId') 
+            // Send user ID to backend to track usage quotas via Supabase
+            'x-user-id': userId || 'anonymous'
         },
         body: JSON.stringify({
             images: processedImages
@@ -70,11 +71,13 @@ export const analyzeImage = async (
     });
 
     if (!response.ok) {
-        const errData = await response.json();
+        const errData = await response.json().catch(() => ({}));
+        
         // Handle specific backend errors
-        if (response.status === 403 && errData.error === 'LIMIT_REACHED') {
+        if (response.status === 403 && (errData.error === 'LIMIT_REACHED')) {
             throw new Error("LIMIT_REACHED"); 
         }
+        
         throw new Error(errData.error || `Server Error: ${response.status}`);
     }
 
@@ -84,16 +87,15 @@ export const analyzeImage = async (
   } catch (error: any) {
     console.error("Error analyzing image:", error);
     
-    let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
-    
+    // Pass through specific limit errors so UI can show Subscription Modal
     if (error.message === "LIMIT_REACHED") {
-        userMessage = "لقد استنفدت المحاولات المجانية. يرجى الترقية للمتابعة.";
-        // We can throw specific error to handle UI logic (show modal)
         throw error; 
     }
     
-    if (error.message.includes("Server Error")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل (Vercel).";
+    let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
+
+    if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";
     }
 
     // Return a fallback error result structure
