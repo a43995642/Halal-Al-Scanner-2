@@ -8,6 +8,7 @@ import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail } from './ty
 
 // Constants
 const FREE_SCANS_LIMIT = 3;
+const MAX_IMAGES_PER_SCAN = 4; // Allow up to 4 images per scan
 
 // Utility for Haptic Feedback
 const vibrate = (pattern: number | number[] = 10) => {
@@ -48,9 +49,15 @@ const compressImage = (base64Str: string, maxWidth = 800, quality = 0.6): Promis
 
 // Utility to convert Base64 to File for sharing
 const dataURLtoFile = async (dataurl: string, filename: string): Promise<File> => {
-  const res = await fetch(dataurl);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type });
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
 };
 
 // Helper to get ingredient styles based on status
@@ -149,7 +156,8 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
 };
 
 function App() {
-  const [image, setImage] = useState<string | null>(null);
+  // CHANGED: Manage an array of images instead of a single string
+  const [images, setImages] = useState<string[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -306,7 +314,8 @@ function App() {
 
   const loadHistoryItem = (item: ScanHistoryItem) => {
     setResult(item.result);
-    setImage(item.thumbnail || null);
+    // History usually stores only one thumbnail, so we set it as the only image
+    setImages(item.thumbnail ? [item.thumbnail] : []);
     setShowHistory(false);
     setError(null);
     vibrate(20);
@@ -351,10 +360,11 @@ function App() {
         text: shareText, 
       };
 
-      // 2. Prepare file sharing if image exists
-      if (image && navigator.canShare) {
+      // 2. Prepare file sharing if image exists (Share the first one)
+      if (images.length > 0 && navigator.canShare) {
         try {
-          const compressedForShare = await compressImage(image, 600, 0.6);
+          // Share the first image only to keep it simple
+          const compressedForShare = await compressImage(images[0], 600, 0.6);
           const file = await dataURLtoFile(compressedForShare, 'halal-scan-result.jpg');
           const files = [file];
           
@@ -381,43 +391,82 @@ function App() {
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     vibrate(20);
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files && e.target.files.length > 0) {
       if (!isPremium && scanCount >= FREE_SCANS_LIMIT) {
         setShowSubscriptionModal(true);
         e.target.value = ''; 
         return;
       }
 
-      setIsLoading(true);
-      setError(null);
-      setUseLowQuality(false);
-      const file = e.target.files[0];
-      const reader = new FileReader();
+      // Check limit
+      const remainingSlots = MAX_IMAGES_PER_SCAN - images.length;
+      if (remainingSlots <= 0) {
+        showToast(`الحد الأقصى ${MAX_IMAGES_PER_SCAN} صور`);
+        e.target.value = '';
+        return;
+      }
       
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImage(base64String);
-        setResult(null);
-        setIsLoading(false);
-        setProgress(0);
-        vibrate(50); // Feedback on load
-      };
-      reader.readAsDataURL(file);
+      // Fix: Cast to File[] to prevent 'unknown' type error in loop for readAsDataURL
+      const filesToProcess = Array.from(e.target.files).slice(0, remainingSlots) as File[];
+
+      setIsLoading(true); // Temporary loading state while reading files
+      setError(null);
+      setResult(null); // Clear previous result if adding more images to analyze again
+
+      const newImages: string[] = [];
+
+      for (const file of filesToProcess) {
+         const reader = new FileReader();
+         const promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+         });
+         reader.readAsDataURL(file);
+         newImages.push(await promise);
+      }
+
+      setImages(prev => [...prev, ...newImages]);
+      setIsLoading(false);
+      setProgress(0);
+      vibrate(50);
+      e.target.value = ''; // Reset input
     }
   };
 
   const handleCapture = (imageSrc: string) => {
-    setImage(imageSrc);
-    setResult(null);
+    // If we've reached the limit, don't add more
+    if (images.length >= MAX_IMAGES_PER_SCAN) {
+       showToast(`الحد الأقصى ${MAX_IMAGES_PER_SCAN} صور`);
+       return;
+    }
+    
+    // Add image to list
+    const newImages = [...images, imageSrc];
+    setImages(newImages);
+    
+    // Auto-close camera if limit is reached
+    if (newImages.length >= MAX_IMAGES_PER_SCAN) {
+       setIsCameraOpen(false);
+    }
+    
+    setResult(null); // Reset result if adding new image
     setError(null);
     setUseLowQuality(false);
     setProgress(0);
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setResult(null);
   };
 
   const openCamera = () => {
     vibrate(20);
     if (!isPremium && scanCount >= FREE_SCANS_LIMIT) {
       setShowSubscriptionModal(true);
+      return;
+    }
+    if (images.length >= MAX_IMAGES_PER_SCAN) {
+      showToast(`يمكنك التقاط ${MAX_IMAGES_PER_SCAN} صور كحد أقصى`);
       return;
     }
     setIsCameraOpen(true);
@@ -430,7 +479,7 @@ function App() {
       return;
     }
 
-    if (!image) return;
+    if (images.length === 0) return;
 
     setIsLoading(true);
     setError(null);
@@ -439,7 +488,12 @@ function App() {
     try {
       const quality = useLowQuality ? 0.6 : 0.8;
       const width = useLowQuality ? 800 : 1024;
-      const finalImage = await compressImage(image, width, quality);
+      
+      // Compress all images
+      const compressedImages = await Promise.all(
+        images.map(img => compressImage(img, width, quality))
+      );
+      
       setProgress(30);
       
       setProgress(40);
@@ -454,12 +508,12 @@ function App() {
         });
       }, 200);
 
-      const scanResult = await analyzeImage(finalImage, true, true);
+      // Pass array to service
+      const scanResult = await analyzeImage(compressedImages, true, true);
       
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
       
-      // FIX: Use confidence 0 to detect errors, not just the string 'خطأ'
       if (scanResult.confidence === 0) {
          vibrate([100, 50, 100]); // Error vibration
          if (scanResult.reason.includes('حجم الصورة') || scanResult.reason.includes('الشبكة')) {
@@ -472,7 +526,8 @@ function App() {
          setResult(scanResult);
          incrementScanCount();
 
-         compressImage(finalImage, 200, 0.6).then(thumb => {
+         // Save first image as thumbnail
+         compressImage(compressedImages[0], 200, 0.6).then(thumb => {
              saveToHistory(scanResult, thumb);
          }).catch(() => {
              saveToHistory(scanResult);
@@ -500,7 +555,7 @@ function App() {
 
   const resetApp = () => {
     vibrate(20);
-    setImage(null);
+    setImages([]); // Clear all images
     setResult(null);
     setError(null);
     setIsCameraOpen(false);
@@ -607,17 +662,14 @@ function App() {
       <main className="max-w-md mx-auto px-4 flex-grow w-full pb-[env(safe-area-inset-bottom)]">
         {isCameraOpen && (
           <Camera 
-            onCapture={(src) => {
-              handleCapture(src);
-              setIsCameraOpen(false);
-            }} 
+            onCapture={handleCapture} 
             onClose={() => setIsCameraOpen(false)} 
           />
         )}
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-6 min-h-[400px] transition-all duration-300 mb-6 relative overflow-hidden flex flex-col border dark:border-slate-800">
           
-          {!image && !result && (
+          {images.length === 0 && !result && (
             <div className="flex flex-col items-center justify-center py-10 space-y-6 flex-grow">
               <div className="w-32 h-32 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center relative">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-emerald-400 dark:text-emerald-500">
@@ -634,7 +686,10 @@ function App() {
                 )}
               </div>
 
-              <p className="text-gray-500 dark:text-gray-400 text-center font-medium">التقط صورة للمنتج أو ارفع صورة للتحقق من المكونات</p>
+              <p className="text-gray-500 dark:text-gray-400 text-center font-medium">
+                 التقط صوراً للمنتج للتحقق من المكونات. <br/>
+                 <span className="text-xs opacity-75">يمكنك إضافة حتى 4 صور لنفس المنتج</span>
+              </p>
               
               <div className="grid grid-cols-2 gap-4 w-full">
                 <button 
@@ -659,6 +714,7 @@ function App() {
                   <input 
                     type="file" 
                     accept="image/*" 
+                    multiple // Allow multiple files
                     onChange={handleFileSelect} 
                     className="hidden" 
                     disabled={!isPremium && scanCount >= FREE_SCANS_LIMIT}
@@ -672,14 +728,65 @@ function App() {
             </div>
           )}
 
-          {/* Content when Image Selected */}
-          {(image || result) && (
+          {/* Content when Images are Selected */}
+          {(images.length > 0 || result) && (
             <div className="animate-fade-in flex flex-col flex-grow">
-              {/* Image Preview Area */}
-              {image && (
-                <div className={`relative rounded-xl overflow-hidden shadow-md mb-6 bg-gray-900 group shrink-0 flex items-center justify-center min-h-[250px]`}>
-                  <img src={image} alt="Preview" className="w-full h-full object-contain max-h-[400px]" />
+              
+              {/* Image Gallery / Preview */}
+              {!result && (
+                <div className="mb-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">الصور المختارة ({images.length}/{MAX_IMAGES_PER_SCAN})</h3>
+                     {images.length < MAX_IMAGES_PER_SCAN && (
+                       <button onClick={resetApp} className="text-xs text-red-500 hover:text-red-700">حذف الكل</button>
+                     )}
+                  </div>
                   
+                  {/* Horizontal Scroll Gallery */}
+                  <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x hide-scrollbar">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative w-32 h-32 shrink-0 rounded-xl overflow-hidden shadow-md border border-gray-200 dark:border-slate-700 group snap-center">
+                        <img src={img} alt={`Capture ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button 
+                          onClick={() => removeImage(idx)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-90 hover:opacity-100 shadow-sm transition active:scale-90"
+                          aria-label="Remove image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {/* Add More Button (Placeholder in list) */}
+                    {images.length < MAX_IMAGES_PER_SCAN && (
+                      <button 
+                        onClick={openCamera}
+                        className="w-32 h-32 shrink-0 rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-700 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition active:scale-95 snap-center"
+                      >
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                         </svg>
+                         <span className="text-xs font-bold">إضافة صورة</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Main Preview (Only shows the first image large if result is present, or scanning animation) */}
+              {(result || isLoading) && images.length > 0 && (
+                <div className={`relative rounded-xl overflow-hidden shadow-md mb-6 bg-gray-900 group shrink-0 flex items-center justify-center min-h-[250px]`}>
+                  {/* Show just the first image as main preview context */}
+                  <img src={images[0]} alt="Preview" className="w-full h-full object-contain max-h-[400px]" />
+                  
+                  {images.length > 1 && (
+                     <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md z-20">
+                        + {images.length - 1} صور أخرى
+                     </div>
+                  )}
+
                   {/* Scanning Animation Overlay */}
                   {isLoading && (
                     <div className="absolute inset-0 pointer-events-none z-10">
@@ -753,9 +860,9 @@ function App() {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">جاري التحليل العميق...</h3>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">جاري التحليل العميق لـ {images.length} صور...</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[90%] mx-auto">
-                       نقوم بفحص كل مكون بدقة لضمان النتيجة. هذا قد يستغرق وقتاً إضافياً، لكن سلامة غذائك أهم من السرعة.
+                       نقوم بفحص كل مكون بدقة لضمان النتيجة. هذا قد يستغرق وقتاً إضافياً.
                     </p>
                   </div>
                 )}
@@ -790,7 +897,7 @@ function App() {
                   </div>
                 )}
 
-                {!isLoading && !error && !result && image && (
+                {!isLoading && !error && !result && images.length > 0 && (
                    <button
                     onClick={handleAnalyze}
                     className="w-full py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-all bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] flex items-center justify-center gap-2"
@@ -798,7 +905,7 @@ function App() {
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
-                    فحص المنتج الآن
+                    فحص الصور ({images.length})
                   </button>
                 )}
               </div>
