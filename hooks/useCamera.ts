@@ -1,10 +1,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 export const useCamera = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string>('');
   const [isCapturing, setIsCapturing] = useState(false);
+  const mountedRef = useRef(true);
   
   // Camera Capabilities State
   const [hasTorch, setHasTorch] = useState(false);
@@ -14,96 +17,145 @@ export const useCamera = () => {
   const [maxZoom, setMaxZoom] = useState(1);
 
   // Helper to stop all tracks on a stream
-  const stopStream = (stream: MediaStream | null) => {
-    if (stream) {
-      stream.getTracks().forEach(track => {
+  const stopStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
         track.stop();
-        // Reset capabilities when stopping
-        setHasTorch(false);
-        setHasZoom(false);
       });
+      streamRef.current = null;
     }
   };
 
   const startCamera = useCallback(async () => {
     setError('');
     
+    // Safety check: Don't start if unmounted
+    if (!mountedRef.current) return;
+
+    // IMPORTANT: Request permissions explicitly on native devices
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const permissions = await Camera.requestPermissions();
+        if (permissions.camera !== 'granted' && permissions.camera !== 'limited') {
+           setError('يرجى منح إذن الكاميرا من إعدادات الهاتف لاستخدام التطبيق.');
+           return;
+        }
+      } catch (e) {
+        console.warn("Native permission request failed", e);
+      }
+    }
+
+    // Check if navigator.mediaDevices exists (required for web camera)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError('عذراً، متصفحك لا يدعم تشغيل الكاميرا.');
+      // If on native platform, guide user to use native camera button
+      if (Capacitor.isNativePlatform()) {
+        setError('تعذر فتح الكاميرا المباشرة. يرجى استخدام زر "كاميرا النظام".');
+      } else {
+        setError('المتصفح لا يدعم الكاميرا المباشرة.');
+      }
       return;
     }
 
     try {
-      // Try to get a stream with specific constraints for better scanning
+      // 1. Try to get a stream with reasonable constraints
+      // Removing 'focusMode' as it causes issues on some Android WebViews
       const constraints: MediaStreamConstraints = {
         video: { 
-            facingMode: { ideal: 'environment' }, // Rear camera
-            width: { ideal: 1920 }, // Higher res for OCR
-            height: { ideal: 1080 },
-            focusMode: { ideal: 'continuous' } // Attempt to force autofocus
-        } as any, // Cast to any because focusMode isn't in standard TS lib yet
+            facingMode: 'environment', // Rear camera
+            width: { ideal: 1280 },    // Safe HD resolution
+            height: { ideal: 720 }
+        },
         audio: false
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // If component unmounted while waiting for stream, stop it immediately
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+
       streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(e => console.error("Play error:", e));
+        // Handle play promise rejection silently (common in strict mode)
+        videoRef.current.play().catch(e => console.warn("Video play interrupted:", e));
       }
 
       // Check Capabilities (Zoom & Torch)
-      const track = stream.getVideoTracks()[0];
-      const capabilities = ((track.getCapabilities && track.getCapabilities()) || {}) as any;
-      
-      // 1. Check Torch
-      if ('torch' in capabilities) {
-        setHasTorch(true);
-      }
-
-      // 2. Check Zoom
-      if ('zoom' in capabilities) {
-        setHasZoom(true);
-        setMaxZoom(capabilities.zoom.max || 5); // Default cap if undefined
-        setZoomLevel(capabilities.zoom.min || 1);
+      try {
+        const track = stream.getVideoTracks()[0];
+        const capabilities = ((track.getCapabilities && track.getCapabilities()) || {}) as any;
+        
+        if (capabilities.torch) setHasTorch(true);
+        if (capabilities.zoom) {
+          setHasZoom(true);
+          setMaxZoom(capabilities.zoom.max || 1);
+          setZoomLevel(capabilities.zoom.min || 1);
+        }
+      } catch (e) {
+        console.warn("Capabilities check failed", e);
       }
 
     } catch (err: any) {
       console.error("Camera start failed:", err);
+      if (!mountedRef.current) return;
       
-      // Fallback attempts logic...
+      // Fallback: Try generic constraints if specific ones failed
       try {
-          console.log("Retrying with basic constraints...");
           const fallbackStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
           });
-          streamRef.current = fallbackStream;
           
+          if (!mountedRef.current) {
+            fallbackStream.getTracks().forEach(t => t.stop());
+            return;
+          }
+
+          streamRef.current = fallbackStream;
           if (videoRef.current) {
             videoRef.current.srcObject = fallbackStream;
-            await videoRef.current.play().catch(e => console.error("Play error fallback:", e));
+            videoRef.current.play().catch(e => console.warn("Fallback play error:", e));
           }
       } catch (fallbackErr: any) {
-           // Error handling (same as before)
            const errorName = fallbackErr.name || err.name;
            if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
-             setError('تم رفض إذن الكاميرا. يرجى تفعيلها من إعدادات المتصفح.');
+             setError('تم رفض إذن الكاميرا. يرجى تفعيلها من الإعدادات.');
            } else if (errorName === 'NotFoundError') {
              setError('لم يتم العثور على كاميرا.');
            } else {
-             setError('حدث خطأ غير متوقع في الكاميرا.');
+             // Generic error on mobile often means WebView restriction
+             setError('حدث خطأ. اضغط على "استخدام كاميرا النظام" في الأسفل.');
            }
       }
     }
   }, []);
 
-  const cleanupCamera = useCallback(() => {
-    if (streamRef.current) {
-      stopStream(streamRef.current);
-      streamRef.current = null;
+  const openNativeCamera = async (onCapture: (imageSrc: string) => void) => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera,
+        promptLabelHeader: 'فحص المنتج',
+        promptLabelPhoto: 'التقاط صورة',
+        promptLabelPicture: 'التقاط صورة'
+      });
+
+      if (image.dataUrl) {
+        onCapture(image.dataUrl);
+      }
+    } catch (e) {
+      console.log('User cancelled or failed to open native camera', e);
     }
+  };
+
+  const cleanupCamera = useCallback(() => {
+    stopStream();
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
@@ -139,18 +191,16 @@ export const useCamera = () => {
     }
   }, [hasZoom]);
 
-  const captureImage = useCallback((onCapture: (imageSrc: string) => void) => {
+  const captureImage = useCallback((onCapture: (imageSrc: string) => void, shouldClose: boolean = true) => {
     if (isCapturing) return;
     
     if (videoRef.current && videoRef.current.readyState >= videoRef.current.HAVE_CURRENT_DATA) {
       setIsCapturing(true);
 
-      // Trigger Haptic Feedback on capture attempt
       if (navigator.vibrate) navigator.vibrate(50);
 
       const video = videoRef.current;
       
-      // Visual delay for shutter effect
       setTimeout(() => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
@@ -159,14 +209,21 @@ export const useCamera = () => {
         const context = canvas.getContext('2d');
         if (context) {
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          // High quality capture
           const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95); 
           
-          // Haptic success
           if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
           
           onCapture(imageDataUrl);
-          cleanupCamera();
+          
+          // Updated Logic: Only clean up if we intend to close
+          if (shouldClose) {
+            // FIX: Do NOT clean up manually here. 
+            // Let the component unmount cleanup (useEffect) handle it.
+            // This prevents the video from freezing/turning black for a few frames before the UI is removed.
+          } else {
+            setIsCapturing(false); // Reset lock to allow subsequent captures
+          }
+
         } else {
           setIsCapturing(false);
         }
@@ -175,8 +232,12 @@ export const useCamera = () => {
   }, [isCapturing, cleanupCamera]);
 
   useEffect(() => {
+    mountedRef.current = true;
     startCamera();
-    return () => cleanupCamera();
+    return () => {
+      mountedRef.current = false;
+      cleanupCamera();
+    };
   }, [startCamera, cleanupCamera]);
 
   return {
@@ -184,7 +245,7 @@ export const useCamera = () => {
     error,
     isCapturing,
     captureImage,
-    // Capabilities exports
+    openNativeCamera, // New export for fallback
     hasTorch,
     isTorchOn,
     toggleTorch,
