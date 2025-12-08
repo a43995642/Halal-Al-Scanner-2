@@ -7,11 +7,14 @@ import { createClient } from '@supabase/supabase-js';
 
 // Configuration
 const PROJECT_URL = 'https://lrnvtsnacrmnnsitdubz.supabase.co';
+// Add fallback key to ensure backend doesn't crash if Vercel env vars are missing
+const FALLBACK_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxybnZ0c25hY3Jtbm5zaXRkdWJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwODYyMTgsImV4cCI6MjA4MDY2MjIxOH0.BUdC_qXw5iPDnObA5SGAHgOfydzxSP2xro618o6wn0g';
+
 const supabaseUrl = process.env.VITE_SUPABASE_URL || PROJECT_URL;
 
 // Use SERVICE_ROLE_KEY for admin privileges (bypasses RLS to write scan counts safely)
-// If missing, falls back to Anon key (might fail if RLS prevents writes, but prevents crash)
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+// If missing, use VITE_ANON_KEY from env, otherwise use hardcoded fallback
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
 // Initialize Supabase Admin Client
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -38,6 +41,17 @@ export default async function handler(request, response) {
   try {
     const { images, text } = request.body;
     const userId = request.headers['x-user-id'];
+
+    // --- SECURITY CHECK 0: Validate API Key Presence ---
+    // Check for API_KEY (Standard) or VITE_API_KEY (Common mistake in Vercel)
+    const apiKey = process.env.API_KEY || process.env.VITE_API_KEY;
+    if (!apiKey) {
+      console.error("Server missing API Key in Environment Variables");
+      return response.status(500).json({ 
+        error: 'CONFIGURATION_ERROR', 
+        message: 'Missing API_KEY in Vercel Environment Variables. Please add it in Settings > Environment Variables.' 
+      });
+    }
 
     // --- SECURITY CHECK 1: Rate Limiting via Supabase ---
     // Wrapped in try/catch so database failure doesn't block the core feature (Scanning)
@@ -67,13 +81,6 @@ export default async function handler(request, response) {
             console.warn("Database check failed, proceeding allowing scan:", dbEx);
             // We allow the scan to proceed if DB is down/misconfigured to avoid app breakage
         }
-    }
-
-    // --- SECURITY CHECK 2: API Key ---
-    const apiKey = process.env.API_KEY; 
-    if (!apiKey) {
-      console.error("Server missing API Key");
-      return response.status(500).json({ error: 'Configuration Error: Missing API Key' });
     }
 
     const ai = new GoogleGenAI({ apiKey: apiKey });

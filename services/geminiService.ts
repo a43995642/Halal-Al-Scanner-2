@@ -1,5 +1,4 @@
 
-
 import { HalalStatus, ScanResult } from "../types";
 
 // Helper to downscale image if dimensions exceed limits (Client Side Processing)
@@ -68,6 +67,10 @@ export const analyzeImage = async (
 
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
+        
+        if (errData.error === 'CONFIGURATION_ERROR') {
+             throw new Error("CONFIGURATION_ERROR");
+        }
         if (response.status === 403 && (errData.error === 'LIMIT_REACHED')) {
             throw new Error("LIMIT_REACHED"); 
         }
@@ -82,8 +85,12 @@ export const analyzeImage = async (
     if (error.message === "LIMIT_REACHED") throw error;
     
     let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
-    if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";
+    
+    if (error.message === "CONFIGURATION_ERROR") {
+        userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+    }
+    else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل بشكل صحيح.";
     }
 
     return {
@@ -113,6 +120,10 @@ export const analyzeText = async (
 
     if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
+
+        if (errData.error === 'CONFIGURATION_ERROR') {
+             throw new Error("CONFIGURATION_ERROR");
+        }
         if (response.status === 403 && (errData.error === 'LIMIT_REACHED')) {
             throw new Error("LIMIT_REACHED"); 
         }
@@ -127,8 +138,12 @@ export const analyzeText = async (
     if (error.message === "LIMIT_REACHED") throw error;
     
     let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
-    if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم.";
+
+    if (error.message === "CONFIGURATION_ERROR") {
+        userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+    }
+    else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";
     }
 
     return {
