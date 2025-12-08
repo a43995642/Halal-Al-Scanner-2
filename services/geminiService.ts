@@ -66,6 +66,11 @@ export const analyzeImage = async (
     });
 
     if (!response.ok) {
+        // Handle Timeout specifically
+        if (response.status === 504) {
+            throw new Error("TIMEOUT_ERROR");
+        }
+
         const errData = await response.json().catch(() => ({}));
         
         if (errData.error === 'CONFIGURATION_ERROR') {
@@ -88,6 +93,9 @@ export const analyzeImage = async (
     
     if (error.message === "CONFIGURATION_ERROR") {
         userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+    }
+    else if (error.message === "TIMEOUT_ERROR") {
+        userMessage = "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
         userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل بشكل صحيح.";
@@ -119,6 +127,10 @@ export const analyzeText = async (
     });
 
     if (!response.ok) {
+        if (response.status === 504) {
+            throw new Error("TIMEOUT_ERROR");
+        }
+
         const errData = await response.json().catch(() => ({}));
 
         if (errData.error === 'CONFIGURATION_ERROR') {
@@ -141,6 +153,9 @@ export const analyzeText = async (
 
     if (error.message === "CONFIGURATION_ERROR") {
         userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+    }
+    else if (error.message === "TIMEOUT_ERROR") {
+        userMessage = "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
         userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";

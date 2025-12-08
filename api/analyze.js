@@ -124,6 +124,8 @@ export default async function handler(request, response) {
          return response.status(400).json({ error: 'No content provided (images or text)' });
     }
 
+    // Call GenAI with timeout handling concept (internal logic)
+    // Note: Vercel kills execution at maxDuration, but we try to return clean errors if logic fails before that.
     const modelResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: { parts: parts },
@@ -148,11 +150,16 @@ export default async function handler(request, response) {
       },
     });
 
+    if (!modelResponse || !modelResponse.text) {
+        throw new Error("Empty response from AI model");
+    }
+
     let result;
     try {
         result = JSON.parse(modelResponse.text);
     } catch (e) {
         // Fallback if model returns raw text despite JSON instruction
+        console.warn("Failed to parse JSON response:", modelResponse.text);
         result = { status: "DOUBTFUL", reason: "تعذر تحليل الرد. يرجى المحاولة مرة أخرى.", ingredientsDetected: [], confidence: 0 };
     }
 
@@ -184,7 +191,7 @@ export default async function handler(request, response) {
     console.error("Backend Analysis Error:", error);
     return response.status(500).json({ 
         error: 'Internal Server Error', 
-        details: error.message 
+        details: error.message || 'Unknown error occurred'
     });
   }
 }
