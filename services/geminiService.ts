@@ -2,10 +2,9 @@
 import { HalalStatus, ScanResult } from "../types";
 import { Capacitor } from '@capacitor/core';
 
-// ⚠️ هام جداً: قم بتغيير الرابط أدناه إلى رابط تطبيقك على فيرسل
-// مثال: https://halal-scanner-app.vercel.app
-// إذا لم تقم بتغييره، لن يعمل التطبيق على الهاتف!
-const VERCEL_PROJECT_URL = 'https://YOUR_VERCEL_PROJECT_URL.vercel.app';
+// ⚠️ هام جداً: قم باستبدال الرابط أدناه برابط مشروعك الحقيقي على Vercel
+// يجب أن يكون الرابط بصيغة: https://your-project-name.vercel.app
+const VERCEL_PROJECT_URL = 'https://halal-al-scanner-2-euwtsemo2-admins-projects-c7390cda.vercel.app'; 
 
 const getBaseUrl = () => {
   // إذا كان التطبيق يعمل على الهاتف (Native)، نستخدم رابط فيرسل الكامل
