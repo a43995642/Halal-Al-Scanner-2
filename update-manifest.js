@@ -9,6 +9,15 @@ if (existsSync(manifestPath)) {
   let content = readFileSync(manifestPath, 'utf-8');
   let hasChanges = false;
 
+  // Check and add Internet Permission (Crucial for API calls)
+  if (!content.includes('android.permission.INTERNET')) {
+    const permissionTag = '<uses-permission android:name="android.permission.INTERNET" />';
+    // Insert before <application> tag
+    content = content.replace('<application', `${permissionTag}\n    <application`);
+    console.log('✅ Injected: android.permission.INTERNET');
+    hasChanges = true;
+  }
+
   // Check and add Camera Permission
   if (!content.includes('android.permission.CAMERA')) {
     const permissionTag = '<uses-permission android:name="android.permission.CAMERA" />';
