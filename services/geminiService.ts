@@ -2,8 +2,7 @@
 import { HalalStatus, ScanResult } from "../types";
 import { Capacitor } from '@capacitor/core';
 
-// ⚠️ هام جداً: قم باستبدال الرابط أدناه برابط مشروعك الحقيقي على Vercel
-// يجب أن يكون الرابط بصيغة: https://your-project-name.vercel.app
+// ⚠️ تم التحديث: استخدام الرابط الرئيسي الثابت للمشروع كما يظهر في لوحة تحكم Vercel
 const VERCEL_PROJECT_URL = 'https://halal-al-scanner-2.vercel.app'; 
 
 const getBaseUrl = () => {
@@ -116,7 +115,7 @@ export const analyzeImage = async (
         userMessage = "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن رابط Vercel صحيح في الكود.";
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من توفر الإنترنت.";
     }
 
     return {
@@ -177,7 +176,7 @@ export const analyzeText = async (
         userMessage = "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن رابط Vercel صحيح.";
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من توفر الإنترنت.";
     }
 
     return {
