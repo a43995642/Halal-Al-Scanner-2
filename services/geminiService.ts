@@ -1,5 +1,21 @@
 
 import { HalalStatus, ScanResult } from "../types";
+import { Capacitor } from '@capacitor/core';
+
+// ⚠️ هام جداً: قم بتغيير الرابط أدناه إلى رابط تطبيقك على فيرسل
+// مثال: https://halal-scanner-app.vercel.app
+// إذا لم تقم بتغييره، لن يعمل التطبيق على الهاتف!
+const VERCEL_PROJECT_URL = 'https://YOUR_VERCEL_PROJECT_URL.vercel.app';
+
+const getBaseUrl = () => {
+  // إذا كان التطبيق يعمل على الهاتف (Native)، نستخدم رابط فيرسل الكامل
+  if (Capacitor.isNativePlatform()) {
+    // التأكد من عدم وجود / في النهاية
+    return VERCEL_PROJECT_URL.replace(/\/$/, '');
+  }
+  // إذا كان يعمل على المتصفح، نستخدم الرابط النسبي العادي
+  return '';
+};
 
 // Helper to downscale image if dimensions exceed limits (Client Side Processing)
 const downscaleImageIfNeeded = (base64Str: string, maxWidth: number, maxHeight: number): Promise<string> => {
@@ -54,7 +70,10 @@ export const analyzeImage = async (
     }));
 
     // 2. Call our Secure Backend Proxy
-    const response = await fetch('/api/analyze', {
+    const baseUrl = getBaseUrl();
+    console.log("Connecting to backend:", baseUrl || "Local/Relative");
+    
+    const response = await fetch(`${baseUrl}/api/analyze`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -98,7 +117,7 @@ export const analyzeImage = async (
         userMessage = "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل بشكل صحيح.";
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن رابط Vercel صحيح في الكود.";
     }
 
     return {
@@ -115,7 +134,8 @@ export const analyzeText = async (
   userId?: string
 ): Promise<ScanResult> => {
   try {
-    const response = await fetch('/api/analyze', {
+    const baseUrl = getBaseUrl();
+    const response = await fetch(`${baseUrl}/api/analyze`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -158,7 +178,7 @@ export const analyzeText = async (
         userMessage = "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن الـ Backend يعمل.";
+        userMessage = "خطأ في الاتصال بالخادم. تأكد من أن رابط Vercel صحيح.";
     }
 
     return {

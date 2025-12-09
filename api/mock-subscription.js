@@ -12,7 +12,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 export default async function handler(request, response) {
   // CORS Headers
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Origin', '*'); // Allow requests from any origin (App or Web)
   response.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   response.setHeader(
     'Access-Control-Allow-Headers',
