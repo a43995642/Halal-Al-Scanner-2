@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 
 // ⚠️ هام جداً: قم باستبدال الرابط أدناه برابط مشروعك الحقيقي على Vercel
 // يجب أن يكون الرابط بصيغة: https://your-project-name.vercel.app
-const VERCEL_PROJECT_URL = 'https://halal-al-scanner-2.vercel.app/api/analyze";
+const VERCEL_PROJECT_URL = 'https://halal-al-scanner-2.vercel.app";
 const getBaseUrl = () => {
   // إذا كان التطبيق يعمل على الهاتف (Native)، نستخدم رابط فيرسل الكامل
   if (Capacitor.isNativePlatform()) {
