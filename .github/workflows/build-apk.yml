@@ -28,17 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Clean conflicting files
-        run: |
-          rm -f android/local.properties
-          rm -rf android/.gradle
-
-      - name: Add Android Platform
-        run: |
-          npx cap add android || true
-
       - name: Build Web Assets
         run: npm run build
+
+      - name: Reset Android Platform
+        run: |
+          rm -rf android
+          npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync
