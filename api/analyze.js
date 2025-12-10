@@ -1,4 +1,3 @@
-
 // Vercel Serverless Function
 // This runs on the server. The API Key is SAFE here.
 
@@ -21,12 +20,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(request, response) {
   // 1. CORS Headers (Allow your frontend to call this)
-  // ⚠️ FIXED: Dynamically set Access-Control-Allow-Origin to the request origin
-  // This is required when Access-Control-Allow-Credentials is true. '*' causes CORS errors in apps.
+  const allowedOrigins = [
+    'https://halal-al-scanner-2.vercel.app', // Vercel deployment
+    'https://localhost', // Capacitor Android
+    'capacitor://localhost', // Capacitor iOS
+    'http://localhost:3000' // Vite local dev
+  ];
   const origin = request.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    response.setHeader('Access-Control-Allow-Origin', origin);
+  }
   
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', origin || '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader(
     'Access-Control-Allow-Headers',
