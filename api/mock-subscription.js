@@ -10,9 +10,12 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || PROJECT_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || FALLBACK_ANON_KEY;
 
 export default async function handler(request, response) {
-  // CORS Headers
+  // 1. CORS Headers
+  // ⚠️ FIXED: Dynamically set Access-Control-Allow-Origin to request.headers.origin
+  const origin = request.headers.origin;
+
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', '*'); // Allow requests from any origin (App or Web)
+  response.setHeader('Access-Control-Allow-Origin', origin || '*'); 
   response.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   response.setHeader(
     'Access-Control-Allow-Headers',
