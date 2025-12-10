@@ -20,7 +20,11 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
   // For API calls (Gemini), strictly use Network
-  if (event.request.url.includes('generativelanguage.googleapis.com')) {
+  // Also exclude our own backend API from caching to avoid POST method issues
+  if (
+    event.request.url.includes('generativelanguage.googleapis.com') || 
+    event.request.url.includes('/api/')
+  ) {
     return;
   }
 
