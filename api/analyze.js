@@ -19,19 +19,25 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(request, response) {
-  // 1. CORS Headers (Allow your frontend to call this)
-  const allowedOrigins = [
-    'https://halal-al-scanner-2.vercel.app', // Vercel deployment
-    'https://localhost', // Capacitor Android
-    'capacitor://localhost', // Capacitor iOS
-    'http://localhost:3000' // Vite local dev
-  ];
+  // 1. Dynamic CORS (More permissive for Android/Native apps)
   const origin = request.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  
+  // Allow requests from: localhost (Android/iOS), Vercel app, or local development
+  if (origin && (
+      origin.includes('localhost') || 
+      origin.includes('capacitor://') || 
+      origin.includes('.vercel.app')
+  )) {
     response.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // Fallback for some Android webviews that might send null origin or file://
+    // Note: We use * here only if specific origin match failed to try and allow the request
+    // But Access-Control-Allow-Credentials cannot be true with *
+    // So we default to trusting the Vercel app url if undefined
+    response.setHeader('Access-Control-Allow-Origin', 'https://halal-al-scanner-2.vercel.app');
   }
   
-  response.setHeader('Access-Control-Allow-Credentials', true);
+  response.setHeader('Access-Control-Allow-Credentials', 'true');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader(
     'Access-Control-Allow-Headers',
@@ -53,22 +59,19 @@ export default async function handler(request, response) {
 
     // --- SECURITY CHECK 0: Validate API Key Presence ---
     // Check for API_KEY (Standard), VITE_API_KEY, or GEMINI_API_KEY (User specific)
-    // We try multiple names to be robust against .env variations
     const apiKey = process.env.API_KEY || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
       console.error("Server missing API Key in Environment Variables");
       return response.status(500).json({ 
         error: 'CONFIGURATION_ERROR', 
-        message: 'Missing API_KEY (or GEMINI_API_KEY) in Vercel Environment Variables. Please add it in Settings > Environment Variables.' 
+        message: 'Missing API_KEY (or GEMINI_API_KEY) in Vercel Environment Variables.' 
       });
     }
 
     // --- SECURITY CHECK 1: Rate Limiting via Supabase ---
-    // Wrapped in try/catch so database failure doesn't block the core feature (Scanning)
     if (userId && userId !== 'anonymous') {
         try {
-            // Fetch user stats
             const { data: userStats, error: dbError } = await supabase
               .from('user_stats')
               .select('scan_count, is_premium')
@@ -83,14 +86,11 @@ export default async function handler(request, response) {
                 isPremium = userStats.is_premium;
             } 
             
-            // ENFORCE LIMIT: 3 Free Scans
-            // Only enforce if we successfully got stats from DB
             if (!isPremium && currentCount >= 3 && !dbError) {
                  return response.status(403).json({ error: 'LIMIT_REACHED', message: 'Upgrade required' });
             }
         } catch (dbEx) {
             console.warn("Database check failed, proceeding allowing scan:", dbEx);
-            // We allow the scan to proceed if DB is down/misconfigured to avoid app breakage
         }
     }
 
@@ -110,7 +110,6 @@ export default async function handler(request, response) {
 
     const parts = [];
 
-    // Add Images if present
     if (images && Array.isArray(images) && images.length > 0) {
         images.forEach(img => {
             parts.push({
@@ -122,21 +121,16 @@ export default async function handler(request, response) {
         });
     }
 
-    // Add Text if present
     if (text) {
         parts.push({ text: `قائمة المكونات النصية المراد فحصها: \n${text}` });
     }
 
-    // Add final instruction
     parts.push({ text: "قم بتحليل المدخلات (صور أو نص) بدقة. استخرج المكونات وحدد هل المنتج حلال؟" });
 
-    // Validation
-    if (parts.length <= 1) { // Only instruction exists
-         return response.status(400).json({ error: 'No content provided (images or text)' });
+    if (parts.length <= 1) { 
+         return response.status(400).json({ error: 'No content provided' });
     }
 
-    // Call GenAI with timeout handling concept (internal logic)
-    // Note: Vercel kills execution at maxDuration, but we try to return clean errors if logic fails before that.
     const modelResponse = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: { parts: parts },
@@ -169,7 +163,6 @@ export default async function handler(request, response) {
     try {
         result = JSON.parse(modelResponse.text);
     } catch (e) {
-        // Fallback if model returns raw text despite JSON instruction
         console.warn("Failed to parse JSON response:", modelResponse.text);
         result = { status: "DOUBTFUL", reason: "تعذر تحليل الرد. يرجى المحاولة مرة أخرى.", ingredientsDetected: [], confidence: 0 };
     }
@@ -177,22 +170,17 @@ export default async function handler(request, response) {
     // --- LOGIC: Increment Scan Count ---
     if (userId && userId !== 'anonymous') {
        try {
-           // Increment scan count atomically
            const { error: updateError } = await supabase.rpc('increment_scan_count', { row_id: userId });
-           
-           // Fallback to manual update if RPC doesn't exist yet
            if (updateError) {
               const { data: currentStats } = await supabase.from('user_stats').select('scan_count').eq('id', userId).single();
               if (currentStats) {
                   await supabase.from('user_stats').update({ scan_count: currentStats.scan_count + 1 }).eq('id', userId);
               } else {
-                  // Create if not exists
                   await supabase.from('user_stats').insert({ id: userId, scan_count: 1 });
               }
            }
        } catch (statsErr) {
            console.error("Failed to update stats", statsErr);
-           // Non-blocking: We don't fail the request if stats update fails
        }
     }
 
