@@ -52,13 +52,15 @@ export default async function handler(request, response) {
     const userId = request.headers['x-user-id'];
 
     // --- SECURITY CHECK 0: Validate API Key Presence ---
-    // Check for API_KEY (Standard) or VITE_API_KEY (Common mistake in Vercel)
-    const apiKey = process.env.API_KEY || process.env.VITE_API_KEY;
+    // Check for API_KEY (Standard), VITE_API_KEY, or GEMINI_API_KEY (User specific)
+    // We try multiple names to be robust against .env variations
+    const apiKey = process.env.API_KEY || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
     if (!apiKey) {
       console.error("Server missing API Key in Environment Variables");
       return response.status(500).json({ 
         error: 'CONFIGURATION_ERROR', 
-        message: 'Missing API_KEY in Vercel Environment Variables. Please add it in Settings > Environment Variables.' 
+        message: 'Missing API_KEY (or GEMINI_API_KEY) in Vercel Environment Variables. Please add it in Settings > Environment Variables.' 
       });
     }
 
