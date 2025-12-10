@@ -284,20 +284,36 @@ function App() {
     const initSupabase = async () => {
       try {
         // 1. Get Session or Sign In Anonymously
-        const { data: { session } } = await supabase.auth.getSession();
+        // Cast to any to bypass potential type definition issues with older/newer versions
+        const authClient = supabase.auth as any;
+        
+        let session = null;
+        if (typeof authClient.getSession === 'function') {
+           const { data } = await authClient.getSession();
+           session = data?.session;
+        }
+
         let uid = session?.user?.id;
 
         if (!uid) {
           // Attempt Anonymous Sign-In
-          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-          if (anonError) {
-             console.error("Auth Error:", anonError);
-             // Fallback to local storage if auth fails (offline mode)
+          if (typeof authClient.signInAnonymously === 'function') {
+             const { data: anonData, error: anonError } = await authClient.signInAnonymously();
+             if (anonError) {
+                console.error("Auth Error:", anonError);
+                // Fallback to local storage if auth fails (offline mode)
+                const savedScanCount = secureStorage.getItem<number>('scanCount', 0);
+                setScanCount(savedScanCount);
+                return;
+             }
+             uid = anonData?.user?.id;
+          } else {
+             // Fallback if SDK doesn't support anonymous login
+             console.warn("Anonymous sign-in not supported by this client.");
              const savedScanCount = secureStorage.getItem<number>('scanCount', 0);
              setScanCount(savedScanCount);
              return;
           }
-          uid = anonData?.user?.id;
         }
 
         if (uid) {
