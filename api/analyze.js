@@ -21,8 +21,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(request, response) {
   // 1. CORS Headers (Allow your frontend to call this)
+  // ⚠️ FIXED: Dynamically set Access-Control-Allow-Origin to the request origin
+  // This is required when Access-Control-Allow-Credentials is true. '*' causes CORS errors in apps.
+  const origin = request.headers.origin;
+  
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Origin', origin || '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   response.setHeader(
     'Access-Control-Allow-Headers',
