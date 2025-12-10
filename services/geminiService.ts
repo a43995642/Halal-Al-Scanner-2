@@ -2,7 +2,7 @@
 import { HalalStatus, ScanResult } from "../types";
 import { Capacitor } from '@capacitor/core';
 
-// ⚠️ تم التحديث: استخدام الرابط الرئيسي الثابت للمشروع كما يظهر في لوحة تحكم Vercel
+// ⚠️ تم التحديث: استخدام الرابط الرئيسي الثابت للمشروع
 const VERCEL_PROJECT_URL = 'https://halal-al-scanner-2.vercel.app'; 
 
 const getBaseUrl = () => {
@@ -115,7 +115,8 @@ export const analyzeImage = async (
         userMessage = "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من توفر الإنترنت.";
+        // More specific error for debugging
+        userMessage = "خطأ في الاتصال بالخادم. يرجى التأكد من رفع التحديثات إلى Vercel (CORS).";
     }
 
     return {
@@ -176,7 +177,7 @@ export const analyzeText = async (
         userMessage = "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        userMessage = "خطأ في الاتصال بالخادم. تأكد من توفر الإنترنت.";
+         userMessage = "خطأ في الاتصال بالخادم. يرجى التأكد من رفع التحديثات إلى Vercel (CORS).";
     }
 
     return {
