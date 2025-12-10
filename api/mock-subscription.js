@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration
@@ -11,11 +10,18 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.
 
 export default async function handler(request, response) {
   // 1. CORS Headers
-  // ⚠️ FIXED: Dynamically set Access-Control-Allow-Origin to request.headers.origin
+  const allowedOrigins = [
+    'https://halal-al-scanner-2.vercel.app', // Vercel deployment
+    'https://localhost', // Capacitor Android
+    'capacitor://localhost', // Capacitor iOS
+    'http://localhost:3000' // Vite local dev
+  ];
   const origin = request.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    response.setHeader('Access-Control-Allow-Origin', origin);
+  }
 
   response.setHeader('Access-Control-Allow-Credentials', true);
-  response.setHeader('Access-Control-Allow-Origin', origin || '*'); 
   response.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   response.setHeader(
     'Access-Control-Allow-Headers',
