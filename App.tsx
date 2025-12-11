@@ -11,7 +11,7 @@ import { secureStorage } from './utils/secureStorage';
 import { supabase } from './lib/supabase';
 
 // Constants
-const FREE_SCANS_LIMIT = 3;
+const FREE_SCANS_LIMIT = 20; // UPDATED: Increased limit for testing
 const MAX_IMAGES_PER_SCAN = 4; // Allow up to 4 images per scan
 
 // Utility for Haptic Feedback

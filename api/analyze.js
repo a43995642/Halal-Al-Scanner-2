@@ -86,7 +86,8 @@ export default async function handler(request, response) {
                 isPremium = userStats.is_premium;
             } 
             
-            if (!isPremium && currentCount >= 3 && !dbError) {
+            // INCREASED LIMIT: 20 Free Scans (Up from 3)
+            if (!isPremium && currentCount >= 20 && !dbError) {
                  return response.status(403).json({ error: 'LIMIT_REACHED', message: 'Upgrade required' });
             }
         } catch (dbEx) {
@@ -161,7 +162,14 @@ export default async function handler(request, response) {
 
     let result;
     try {
-        result = JSON.parse(modelResponse.text);
+        // CLEANUP: Sometimes Gemini wraps JSON in markdown blocks (```json ... ```) even with MIME type set.
+        // We strip these to ensure successful parsing.
+        const cleanText = modelResponse.text
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .trim();
+
+        result = JSON.parse(cleanText);
     } catch (e) {
         console.warn("Failed to parse JSON response:", modelResponse.text);
         result = { status: "DOUBTFUL", reason: "تعذر تحليل الرد. يرجى المحاولة مرة أخرى.", ingredientsDetected: [], confidence: 0 };
