@@ -1,3 +1,4 @@
+
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -9,7 +10,19 @@ const config: CapacitorConfig = {
     hostname: 'localhost' // Ensures origin is https://localhost
   },
   plugins: {
-    // Basic plugin configuration if needed
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#059669",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+    },
+    Keyboard: {
+      resize: "body",
+      style: "DARK",
+      resizeOnFullScreen: true,
+    },
   }
 };
 

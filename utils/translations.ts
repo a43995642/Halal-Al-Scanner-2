@@ -1,3 +1,4 @@
+
 import { Language } from '../types';
 
 export const translations = {
@@ -105,7 +106,22 @@ export const translations = {
     shareText: "نتيجة فحص الحلال",
     shareCopied: "تم نسخ النتيجة إلى الحافظة",
     activating: "جاري تفعيل الاشتراك...",
-    activated: "تم تفعيل النسخة الكاملة!"
+    activated: "تم تفعيل النسخة الكاملة!",
+    privacyTitle: "سياسة الخصوصية",
+    privacyContent: `
+    1. جمع البيانات:
+    نحن نستخدم الكاميرا فقط لتحليل صور المكونات الغذائية في الوقت الفعلي. الصور تُرسل إلى خوادمنا للمعالجة ولا يتم بيعها لأطراف ثالثة.
+    
+    2. البيانات الشخصية:
+    لا نجمع أي بيانات شخصية (مثل الاسم أو البريد الإلكتروني) إلا إذا قمت بإنشاء حساب اختياري لحفظ السجل.
+    
+    3. الأمان:
+    نستخدم تقنيات تشفير متقدمة لحماية بياناتك أثناء الإرسال.
+    
+    4. المسؤولية:
+    نتائج التطبيق تعتمد على الذكاء الاصطناعي وقد تحتمل الخطأ. المستخدم مسؤول عن التحقق النهائي.
+    `,
+    closeBtn: "إغلاق"
   },
   en: {
     appTitle: "Halal Scanner",
@@ -211,6 +227,21 @@ export const translations = {
     shareText: "Halal Scan Result",
     shareCopied: "Result copied to clipboard",
     activating: "Activating...",
-    activated: "Pro version activated!"
+    activated: "Pro version activated!",
+    privacyTitle: "Privacy Policy",
+    privacyContent: `
+    1. Data Collection:
+    We use the camera solely to analyze food ingredient images in real-time. Images are sent to our servers for processing and are not sold to third parties.
+    
+    2. Personal Data:
+    We do not collect personal data (like names or emails) unless you choose to create an optional account to save your history.
+    
+    3. Security:
+    We use advanced encryption technologies to protect your data during transmission.
+    
+    4. Disclaimer:
+    Results provided by the app are based on AI and may contain errors. The user is responsible for final verification.
+    `,
+    closeBtn: "Close"
   }
 };

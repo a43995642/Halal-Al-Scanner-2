@@ -4,6 +4,7 @@ import { Camera } from './components/Camera';
 import { StatusBadge } from './components/StatusBadge';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { PrivacyModal } from './components/PrivacyModal'; // Added Import
 import { analyzeImage, analyzeText } from './services/geminiService';
 import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail, Language } from './types';
 import { secureStorage } from './utils/secureStorage';
@@ -221,6 +222,7 @@ function App() {
   
   // Onboarding & Terms
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false); // New Privacy State
   
   // History State
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
@@ -822,6 +824,7 @@ function App() {
       {showOnboarding && <OnboardingModal onFinish={handleOnboardingFinish} lang={language} />}
       {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} onLoadItem={loadHistoryItem} lang={language} />}
       {showTextModal && <TextInputModal onClose={() => setShowTextModal(false)} onAnalyze={handleAnalyzeText} lang={language} />}
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} lang={language} />}
       
       {showSubscriptionModal && (
         <SubscriptionModal 
@@ -1304,16 +1307,12 @@ function App() {
         <p className="mb-1">{t.footerDisclaimer1}</p>
         <p className="mb-3">{t.footerDisclaimer2}</p>
         <div className="flex justify-center gap-4 mt-4">
-           <a 
-            href="#" 
-            onClick={(e) => {
-              e.preventDefault();
-              alert('Privacy Policy Placeholder');
-            }}
-            className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700 cursor-pointer"
+           <button 
+            onClick={() => setShowPrivacy(true)}
+            className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700 cursor-pointer bg-transparent border-none p-0"
            >
              {t.privacyPolicy}
-           </a>
+           </button>
            <a href="#" className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700">{t.termsOfUse}</a>
         </div>
       </footer>
