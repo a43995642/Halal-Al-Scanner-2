@@ -1,6 +1,8 @@
+
 {
   "name": "Halal Scanner",
   "short_name": "HalalScan",
+  "description": "A React application that uses Gemini AI to scan food ingredients and determine if they are Halal, Haram, or Doubtful.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f8fafc",
