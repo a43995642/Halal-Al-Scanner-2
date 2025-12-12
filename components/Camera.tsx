@@ -1,12 +1,17 @@
+
 import React, { useRef, useState } from 'react';
 import { useCamera } from '../hooks/useCamera';
+import { Language } from '../types';
+import { translations } from '../utils/translations';
 
 interface CameraProps {
   onCapture: (imageSrc: string) => void;
   onClose: () => void;
+  lang: Language;
 }
 
-export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
+export const Camera: React.FC<CameraProps> = ({ onCapture, onClose, lang }) => {
+  const t = translations[lang];
   const { 
     videoRef, 
     error, 
@@ -68,7 +73,7 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center animate-fade-in">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col justify-center items-center animate-fade-in" dir="ltr">
       {/* Hide default video controls explicitly to prevent 'play' button overlay */}
       <style>{`
         video::-webkit-media-controls,
@@ -99,18 +104,18 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
            </svg>
-           <span className="font-bold text-sm">تمت إضافة الصورة</span>
+           <span className="font-bold text-sm">{t.imgAdded}</span>
         </div>
       </div>
 
       {error ? (
-        <div className="text-white p-6 text-center max-w-sm bg-gray-900 rounded-3xl mx-4 shadow-2xl border border-gray-700 animate-slide-up z-40">
+        <div className="text-white p-6 text-center max-w-sm bg-gray-900 rounded-3xl mx-4 shadow-2xl border border-gray-700 animate-slide-up z-40" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
           <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold mb-2 text-white">الكاميرا لا تعمل؟</h3>
+          <h3 className="text-xl font-bold mb-2 text-white">{t.cameraErrorTitle}</h3>
           <p className="mb-6 font-medium leading-relaxed text-gray-400 text-sm">
             {error}
           </p>
@@ -123,14 +128,14 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
             </svg>
-            استخدام كاميرا النظام
+            {t.useNativeCamera}
           </button>
 
           <button 
             onClick={onClose}
             className="bg-white/10 text-white w-full py-3 rounded-xl font-bold hover:bg-white/20 transition active:scale-95"
           >
-            إغلاق
+            {t.close}
           </button>
         </div>
       ) : (
@@ -155,7 +160,7 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
                  <button 
                   onClick={toggleTorch}
                   className={`p-3 rounded-full backdrop-blur-md transition active:scale-90 ${isTorchOn ? 'bg-yellow-400 text-yellow-900 shadow-[0_0_15px_rgba(250,204,21,0.5)]' : 'bg-black/30 text-white'}`}
-                  aria-label="تبديل الفلاش"
+                  aria-label={t.flashToggle}
                  >
                    {isTorchOn ? (
                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
@@ -173,7 +178,7 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
                 onClick={onClose}
                 disabled={isCapturing}
                 className="text-white p-3 rounded-full bg-black/30 backdrop-blur-md hover:bg-black/50 transition active:scale-90"
-                aria-label="إغلاق الكاميرا"
+                aria-label={t.closeCamera}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -209,14 +214,14 @@ export const Camera: React.FC<CameraProps> = ({ onCapture, onClose }) => {
                     ? 'border-white/50 bg-white/40 scale-95 cursor-wait' 
                     : 'border-white/30 bg-white/20 hover:bg-white/30 active:scale-95 cursor-pointer'
                   }`}
-                aria-label="التقاط صورة"
+                aria-label={t.captureHint}
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <div className={`w-16 h-16 rounded-full bg-white shadow-inner border border-gray-200 transition-all duration-200 ${isCapturing ? 'scale-75 opacity-80' : 'group-active:scale-90'}`}></div>
               </button>
               
               <p className="text-white/60 text-xs font-medium text-center drop-shadow-md">
-                اضغط للتصوير، علّق للتصوير المتعدد
+                {t.captureHint}
               </p>
             </div>
           </div>

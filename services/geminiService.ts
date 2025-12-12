@@ -1,5 +1,5 @@
 
-import { HalalStatus, ScanResult } from "../types";
+import { HalalStatus, ScanResult, Language } from "../types";
 import { Capacitor } from '@capacitor/core';
 
 // ⚠️ تم التحديث: استخدام الرابط الرئيسي الثابت للمشروع
@@ -54,7 +54,8 @@ export const analyzeImage = async (
   base64Images: string[], 
   userId?: string,
   enhance: boolean = false,
-  enableImageDownscaling: boolean = false
+  enableImageDownscaling: boolean = false,
+  language: Language = 'ar'
 ): Promise<ScanResult> => {
   
   try {
@@ -75,7 +76,8 @@ export const analyzeImage = async (
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-user-id': userId || 'anonymous'
+            'x-user-id': userId || 'anonymous',
+            'x-language': language
         },
         body: JSON.stringify({
             images: processedImages
@@ -106,17 +108,24 @@ export const analyzeImage = async (
     console.error("Error analyzing image:", error);
     if (error.message === "LIMIT_REACHED") throw error;
     
-    let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
+    // Localize Error Messages based on requested language
+    const isAr = language === 'ar';
+    let userMessage = isAr ? "حدث خطأ غير متوقع. حاول مرة أخرى." : "An unexpected error occurred. Please try again.";
     
     if (error.message === "CONFIGURATION_ERROR") {
-        userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+        userMessage = isAr 
+          ? "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel." 
+          : "Configuration Error: Please add API_KEY in Vercel settings.";
     }
     else if (error.message === "TIMEOUT_ERROR") {
-        userMessage = "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل.";
+        userMessage = isAr
+          ? "استغرق الخادم وقتاً طويلاً في التحليل. يرجى المحاولة بصورة واحدة فقط أو بدقة أقل."
+          : "Server timeout. Please try with fewer images or lower quality.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-        // More specific error for debugging
-        userMessage = "خطأ في الاتصال بالخادم. يرجى التأكد من رفع التحديثات إلى Vercel (CORS).";
+        userMessage = isAr
+          ? "خطأ في الاتصال بالخادم. يرجى التأكد من رفع التحديثات إلى Vercel (CORS)."
+          : "Connection error. Ensure Vercel deployment is active.";
     }
 
     return {
@@ -130,7 +139,8 @@ export const analyzeImage = async (
 
 export const analyzeText = async (
   text: string, 
-  userId?: string
+  userId?: string,
+  language: Language = 'ar'
 ): Promise<ScanResult> => {
   try {
     const baseUrl = getBaseUrl();
@@ -138,7 +148,8 @@ export const analyzeText = async (
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-user-id': userId || 'anonymous'
+            'x-user-id': userId || 'anonymous',
+            'x-language': language
         },
         body: JSON.stringify({
             text: text
@@ -168,16 +179,19 @@ export const analyzeText = async (
     console.error("Error analyzing text:", error);
     if (error.message === "LIMIT_REACHED") throw error;
     
-    let userMessage = "حدث خطأ غير متوقع. حاول مرة أخرى.";
+    const isAr = language === 'ar';
+    let userMessage = isAr ? "حدث خطأ غير متوقع. حاول مرة أخرى." : "An unexpected error occurred. Please try again.";
 
     if (error.message === "CONFIGURATION_ERROR") {
-        userMessage = "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel.";
+         userMessage = isAr 
+          ? "خطأ في الإعدادات: يرجى إضافة API_KEY في إعدادات Vercel." 
+          : "Configuration Error: Please add API_KEY in Vercel settings.";
     }
     else if (error.message === "TIMEOUT_ERROR") {
-        userMessage = "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى.";
+        userMessage = isAr ? "استغرق الخادم وقتاً طويلاً. يرجى المحاولة مرة أخرى." : "Server timeout. Please try again.";
     }
     else if (error.message.includes("Server Error") || error.message.includes("Failed to fetch")) {
-         userMessage = "خطأ في الاتصال بالخادم. يرجى التأكد من رفع التحديثات إلى Vercel (CORS).";
+         userMessage = isAr ? "خطأ في الاتصال بالخادم." : "Server connection failed.";
     }
 
     return {

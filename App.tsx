@@ -1,14 +1,14 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Camera } from './components/Camera';
 import { StatusBadge } from './components/StatusBadge';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { analyzeImage, analyzeText } from './services/geminiService';
-import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail } from './types';
+import { ScanResult, ScanHistoryItem, HalalStatus, IngredientDetail, Language } from './types';
 import { secureStorage } from './utils/secureStorage';
 import { supabase } from './lib/supabase';
+import { translations } from './utils/translations';
 
 // Constants
 const FREE_SCANS_LIMIT = 20; // UPDATED: Increased limit for testing
@@ -89,7 +89,8 @@ const getIngredientStyle = (status: HalalStatus, isOverlay: boolean = false) => 
 };
 
 // History Modal Component
-const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryItem[], onClose: () => void, onLoadItem: (item: ScanHistoryItem) => void }) => {
+const HistoryModal = ({ history, onClose, onLoadItem, lang }: { history: ScanHistoryItem[], onClose: () => void, onLoadItem: (item: ScanHistoryItem) => void, lang: Language }) => {
+  const t = translations[lang];
   return (
     <div className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       <div className="bg-slate-50 dark:bg-slate-950 rounded-t-3xl sm:rounded-2xl w-full max-w-md h-[80vh] flex flex-col shadow-2xl animate-slide-up">
@@ -98,7 +99,7 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-emerald-600">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
              </svg>
-             سجل الفحوصات
+             {t.historyTitle}
           </h2>
           <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-slate-800 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -109,7 +110,7 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
         <div className="overflow-y-auto flex-grow p-4 space-y-3">
           {history.length === 0 ? (
             <div className="text-center text-gray-400 py-10">
-              <p>لا يوجد سجلات سابقة</p>
+              <p>{t.noHistory}</p>
             </div>
           ) : (
             history.map((item) => (
@@ -132,9 +133,9 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
                             item.result.status === HalalStatus.DOUBTFUL ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
                             'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
                           }`}>
-                            {item.result.status === HalalStatus.HALAL ? 'حلال' : 
-                             item.result.status === HalalStatus.HARAM ? 'حرام' : 
-                             item.result.status === HalalStatus.DOUBTFUL ? 'مشتبه به' : 'غير غذائي'}
+                            {item.result.status === HalalStatus.HALAL ? t.statusHalal : 
+                             item.result.status === HalalStatus.HARAM ? t.statusHaram : 
+                             item.result.status === HalalStatus.DOUBTFUL ? t.statusDoubtful : t.statusNonFood}
                           </span>
                           {item.result.confidence !== undefined && (
                              <span className="text-[10px] bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-gray-500 dark:text-gray-400">
@@ -146,7 +147,7 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
                    </div>
                 </div>
                 <div className="text-gray-300 dark:text-slate-700 shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${lang === 'ar' ? 'rotate-180' : ''}`}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                   </svg>
                 </div>
@@ -160,8 +161,9 @@ const HistoryModal = ({ history, onClose, onLoadItem }: { history: ScanHistoryIt
 };
 
 // Text Input Modal
-const TextInputModal = ({ onClose, onAnalyze }: { onClose: () => void, onAnalyze: (text: string) => void }) => {
+const TextInputModal = ({ onClose, onAnalyze, lang }: { onClose: () => void, onAnalyze: (text: string) => void, lang: Language }) => {
   const [text, setText] = useState('');
+  const t = translations[lang];
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
@@ -171,7 +173,7 @@ const TextInputModal = ({ onClose, onAnalyze }: { onClose: () => void, onAnalyze
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-emerald-600">
                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
              </svg>
-             إدخال المكونات يدوياً
+             {t.manualInputTitle}
            </h3>
            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -182,12 +184,12 @@ const TextInputModal = ({ onClose, onAnalyze }: { onClose: () => void, onAnalyze
         <div className="p-4">
            <textarea
              className="w-full h-40 bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none dark:text-white placeholder-gray-400"
-             placeholder="الصق المكونات هنا... (مثال: E120, Gelatin, ماء، سكر)"
+             placeholder={t.manualInputPlaceholder}
              value={text}
              onChange={(e) => setText(e.target.value)}
              autoFocus
            />
-           <p className="text-xs text-gray-500 mt-2">يمكنك كتابة أرقام المواد المضافة (E-Numbers) أو أسماء المكونات.</p>
+           <p className="text-xs text-gray-500 mt-2">{t.manualInputHint}</p>
         </div>
         <div className="p-4 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-100 dark:border-slate-800 flex gap-3">
            <button 
@@ -195,7 +197,7 @@ const TextInputModal = ({ onClose, onAnalyze }: { onClose: () => void, onAnalyze
              disabled={!text.trim()}
              className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-emerald-900/10"
            >
-             فحص النص
+             {t.analyzeTextBtn}
            </button>
         </div>
       </div>
@@ -207,7 +209,7 @@ function App() {
   // CHANGED: Manage an array of images instead of a single string
   const [images, setImages] = useState<string[]>([]);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [showTextModal, setShowTextModal] = useState(false); // New State for Text Modal
+  const [showTextModal, setShowTextModal] = useState(false); 
 
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -230,6 +232,17 @@ function App() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   
+  // Language State
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('halalScannerLang')) {
+      return localStorage.getItem('halalScannerLang') as Language;
+    }
+    return 'ar';
+  });
+
+  // Get current translation object
+  const t = translations[language];
+
   // Theme State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     // Check initial logic from inline script or localStorage
@@ -367,9 +380,22 @@ function App() {
     localStorage.setItem('halalScannerTheme', theme);
   }, [theme]);
 
+  // Language Effect
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.setAttribute('lang', language);
+    root.setAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
+    localStorage.setItem('halalScannerLang', language);
+  }, [language]);
+
   const toggleTheme = () => {
     vibrate(20);
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  const toggleLanguage = () => {
+    vibrate(20);
+    setLanguage(prev => prev === 'ar' ? 'en' : 'ar');
   };
 
   const showToast = (msg: string) => {
@@ -386,7 +412,7 @@ function App() {
   const handleSubscribe = async () => {
     // 1. Check if we have a user
     if (!userId) {
-       showToast("جاري تهيئة المستخدم... حاول مرة أخرى");
+       showToast(t.unexpectedError);
        return;
     }
 
@@ -410,12 +436,12 @@ function App() {
       setIsPremium(true);
       secureStorage.setItem('isPremium', true); 
       setShowSubscriptionModal(false);
-      showToast('تم تفعيل النسخة الكاملة!');
+      showToast(t.activated);
       vibrate([50, 100, 50]);
 
     } catch (error) {
       console.error("Upgrade error", error);
-      showToast("فشل التفعيل. تحقق من الاتصال.");
+      showToast(t.connectionError);
     } finally {
       setIsUpgrading(false);
     }
@@ -462,25 +488,25 @@ function App() {
     vibrate(20);
     if (!result) return;
     
-    const statusLabel = result.status === HalalStatus.HALAL ? 'حلال ✅' : 
-                         result.status === HalalStatus.HARAM ? 'حرام ❌' : 
-                         result.status === HalalStatus.DOUBTFUL ? 'مشتبه به ⚠️' : 
-                         result.status === HalalStatus.NON_FOOD ? 'غير غذائي 🚫' : 'غير معروف';
+    const statusLabel = result.status === HalalStatus.HALAL ? t.statusHalal : 
+                         result.status === HalalStatus.HARAM ? t.statusHaram : 
+                         result.status === HalalStatus.DOUBTFUL ? t.statusDoubtful : 
+                         result.status === HalalStatus.NON_FOOD ? t.statusNonFood : t.statusUnknown;
     
-    const confidenceStr = result.confidence ? `${result.confidence}%` : 'غير محدد';
-    const ingredientsText = result.ingredientsDetected.map(i => i.name).join('، ');
+    const confidenceStr = result.confidence ? `${result.confidence}%` : 'N/A';
+    const ingredientsText = result.ingredientsDetected.map(i => i.name).join(', ');
 
-    const shareText = `🔍 نتيجة فحص الحلال\n\n` +
-      `المنتج: ${statusLabel}\n` +
-      `الدقة: ${confidenceStr}\n\n` +
-      `📝 السبب: ${result.reason}\n\n` +
-      `🥗 المكونات: ${ingredientsText}\n\n` +
-      `تم الفحص بواسطة تطبيق Halal Scanner AI`;
+    const shareText = `🔍 ${t.shareText}\n\n` +
+      `${t.resultTitle} ${statusLabel}\n` +
+      `${t.confidence}: ${confidenceStr}\n\n` +
+      `📝 ${result.reason}\n\n` +
+      `🥗 ${ingredientsText}\n\n` +
+      `${t.appSubtitle}`;
     
     // Auto-copy text to clipboard as a fallback
     try {
       await navigator.clipboard.writeText(shareText);
-      showToast("جاري تحضير المشاركة...");
+      showToast(t.shareCopied);
     } catch (e) {
       console.warn("Clipboard access failed", e);
     }
@@ -488,12 +514,12 @@ function App() {
     try {
       // 1. Check if sharing is supported
       if (!navigator.share) {
-        alert('تم نسخ النتيجة إلى الحافظة.');
+        alert(t.shareCopied);
         return;
       }
 
       const shareData: ShareData = {
-        title: 'نتيجة فحص الحلال',
+        title: t.shareText,
         text: shareText, 
       };
 
@@ -522,7 +548,7 @@ function App() {
       }
       console.error('Error sharing:', err);
       // Fallback message if sharing totally fails (though we copied to clipboard already)
-      showToast('تم نسخ النتيجة إلى الحافظة');
+      showToast(t.shareCopied);
     }
   };
 
@@ -538,7 +564,7 @@ function App() {
       // Check limit
       const remainingSlots = MAX_IMAGES_PER_SCAN - images.length;
       if (remainingSlots <= 0) {
-        showToast(`الحد الأقصى ${MAX_IMAGES_PER_SCAN} صور`);
+        showToast(`${t.maxImages} (${MAX_IMAGES_PER_SCAN})`);
         e.target.value = '';
         return;
       }
@@ -548,7 +574,7 @@ function App() {
       // Validate File Types
       const invalidFiles = filesToProcess.filter(file => !file.type.startsWith('image/'));
       if (invalidFiles.length > 0) {
-         showToast("يرجى اختيار صور فقط (JPG, PNG)");
+         showToast(t.onlyImages);
          e.target.value = '';
          return;
       }
@@ -579,7 +605,7 @@ function App() {
   const handleCapture = (imageSrc: string) => {
     // If we've reached the limit, don't add more
     if (images.length >= MAX_IMAGES_PER_SCAN) {
-       showToast(`الحد الأقصى ${MAX_IMAGES_PER_SCAN} صور`);
+       showToast(`${t.maxImages} (${MAX_IMAGES_PER_SCAN})`);
        return;
     }
     
@@ -610,7 +636,7 @@ function App() {
       return;
     }
     if (images.length >= MAX_IMAGES_PER_SCAN) {
-      showToast(`يمكنك التقاط ${MAX_IMAGES_PER_SCAN} صور كحد أقصى`);
+      showToast(`${t.maxImages}`);
       return;
     }
     setIsCameraOpen(true);
@@ -638,7 +664,7 @@ function App() {
         setProgress(prev => (prev >= 90 ? 90 : prev + 5));
       }, 150);
 
-      const scanResult = await analyzeText(text, userId || undefined);
+      const scanResult = await analyzeText(text, userId || undefined, language);
       
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
@@ -657,10 +683,10 @@ function App() {
     } catch (err: any) {
        console.error("Text Analysis Error", err);
        if (progressInterval.current) clearInterval(progressInterval.current);
-       let errorMessage = "حدث خطأ غير متوقع.";
+       let errorMessage = t.unexpectedError;
        if (err.message.includes("LIMIT_REACHED")) {
          setShowSubscriptionModal(true);
-         errorMessage = "انتهت المحاولات المجانية.";
+         errorMessage = t.limitReachedError;
        }
        setError(errorMessage);
     } finally {
@@ -706,15 +732,15 @@ function App() {
         });
       }, 200);
 
-      // Pass array to service + userId
-      const scanResult = await analyzeImage(compressedImages, userId || undefined, true, true);
+      // Pass array to service + userId + language
+      const scanResult = await analyzeImage(compressedImages, userId || undefined, true, true, language);
       
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
       
       if (scanResult.confidence === 0) {
          vibrate([100, 50, 100]); // Error vibration
-         if (scanResult.reason.includes('حجم الصورة') || scanResult.reason.includes('الشبكة')) {
+         if (scanResult.reason.includes('image size') || scanResult.reason.includes('حجم الصورة')) {
            setUseLowQuality(true);
          }
          setError(scanResult.reason);
@@ -743,17 +769,17 @@ function App() {
       vibrate([100, 50, 100]); // Error vibration
       if (progressInterval.current) clearInterval(progressInterval.current);
       
-      let errorMessage = "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.";
+      let errorMessage = t.unexpectedError;
       if (err instanceof Error || (typeof err === 'object' && err !== null)) {
          const msg = (err.message || JSON.stringify(err)).toLowerCase();
          if (msg.includes('limit_reached')) {
              setShowSubscriptionModal(true);
-             errorMessage = "لقد استنفدت المحاولات المجانية. يرجى الترقية.";
+             errorMessage = t.limitReachedError;
          }
-         else if (msg.includes('network') || msg.includes('fetch')) errorMessage = "تعذر الاتصال بالخادم. تحقق من الإنترنت.";
+         else if (msg.includes('network') || msg.includes('fetch')) errorMessage = t.connectionError;
          else if (msg.includes('413') || msg.includes('rpc')) {
              setUseLowQuality(true);
-             errorMessage = "حجم الصورة كبير جداً.";
+             errorMessage = t.imageTooLarge;
          }
       }
       setError(errorMessage);
@@ -774,15 +800,16 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans flex flex-col transition-colors duration-300">
-      {showOnboarding && <OnboardingModal onFinish={handleOnboardingFinish} />}
-      {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} onLoadItem={loadHistoryItem} />}
-      {showTextModal && <TextInputModal onClose={() => setShowTextModal(false)} onAnalyze={handleAnalyzeText} />}
+      {showOnboarding && <OnboardingModal onFinish={handleOnboardingFinish} lang={language} />}
+      {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} onLoadItem={loadHistoryItem} lang={language} />}
+      {showTextModal && <TextInputModal onClose={() => setShowTextModal(false)} onAnalyze={handleAnalyzeText} lang={language} />}
       
       {showSubscriptionModal && (
         <SubscriptionModal 
           onSubscribe={handleSubscribe} 
           onClose={() => setShowSubscriptionModal(false)}
           isLimitReached={!isPremium && scanCount >= FREE_SCANS_LIMIT}
+          lang={language}
         />
       )}
       
@@ -791,7 +818,7 @@ function App() {
         <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fade-in">
            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl flex flex-col items-center">
               <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="font-bold text-gray-800 dark:text-white">جاري تفعيل الاشتراك...</p>
+              <p className="font-bold text-gray-800 dark:text-white">{t.activating}</p>
            </div>
         </div>
       )}
@@ -806,11 +833,11 @@ function App() {
       <header className="bg-emerald-600 dark:bg-emerald-800 text-white pt-[calc(1.5rem+env(safe-area-inset-top))] pb-6 px-6 shadow-lg rounded-b-3xl mb-8 sticky top-0 z-40 transition-colors duration-500">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           {/* Title Section: Added min-w-0 to allow text truncation if needed */}
-          <div className="min-w-0 flex-1 pl-4"> 
+          <div className="min-w-0 flex-1 pl-2"> 
             <h1 className="text-2xl font-bold mb-1 whitespace-nowrap leading-tight">
-              فاحص الحلال
+              {t.appTitle}
             </h1>
-            <p className="text-emerald-100 text-sm truncate">Halal Scanner AI</p>
+            <p className="text-emerald-100 text-sm truncate">{t.appSubtitle}</p>
           </div>
           
           {/* Controls Section */}
@@ -822,7 +849,7 @@ function App() {
                >
                  <div className="bg-white/20 px-3 py-1 rounded-full border border-white/10 hover:bg-white/30 transition">
                    <span className="text-xs font-bold text-white whitespace-nowrap">
-                      {Math.max(0, FREE_SCANS_LIMIT - scanCount)} مجاناً
+                      {Math.max(0, FREE_SCANS_LIMIT - scanCount)} {t.freeScansLeft}
                    </span>
                  </div>
                </div>
@@ -832,16 +859,25 @@ function App() {
                   <div className="bg-amber-400 dark:bg-amber-500 text-amber-900 dark:text-amber-950 px-2 sm:px-3 py-1 rounded-full shadow-sm border border-amber-300 dark:border-amber-400 flex items-center gap-1.5">
                     <span className="font-black text-[10px] bg-white/20 px-1.5 rounded-[4px]">PRO</span>
                     {/* Fixed: Hidden on mobile to prevent layout breakage */}
-                    <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap hidden sm:inline">نسخة كاملة</span>
+                    <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap hidden sm:inline">{t.proBadge}</span>
                   </div>
                 </div>
              )}
+
+             {/* Language Toggle Button */}
+             <button 
+               onClick={toggleLanguage}
+               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0 font-bold text-sm"
+               aria-label="Toggle Language"
+             >
+               {language === 'ar' ? 'EN' : 'ع'}
+             </button>
 
              {/* Theme Toggle Button */}
              <button 
                onClick={toggleTheme}
                className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
-               aria-label={theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'}
+               aria-label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
              >
                {theme === 'dark' ? (
                  /* Sun Icon */
@@ -859,7 +895,7 @@ function App() {
              <button 
                onClick={() => setShowOnboarding(true)}
                className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
-               aria-label="كيف يعمل"
+               aria-label={t.howItWorks}
              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
@@ -869,7 +905,7 @@ function App() {
              <button 
                onClick={() => setShowHistory(true)} 
                className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
-               aria-label="السجل"
+               aria-label={t.history}
              >
                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -884,6 +920,7 @@ function App() {
           <Camera 
             onCapture={handleCapture} 
             onClose={() => setIsCameraOpen(false)} 
+            lang={language}
           />
         )}
 
@@ -907,7 +944,7 @@ function App() {
               </div>
 
               <p className="text-gray-500 dark:text-gray-400 text-center font-medium">
-                 التقط صوراً للمنتج أو أدخل المكونات للتحقق. <br/>
+                 {t.mainHint}
               </p>
               
               <div className="grid grid-cols-2 gap-3 w-full">
@@ -923,7 +960,7 @@ function App() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
                   </svg>
-                  <span className="font-bold">الكاميرا</span>
+                  <span className="font-bold">{t.btnCamera}</span>
                 </button>
                 <label className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer active:scale-95 ${
                     !isPremium && scanCount >= FREE_SCANS_LIMIT 
@@ -941,7 +978,7 @@ function App() {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 mb-2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                   </svg>
-                  <span className="font-bold">معرض الصور</span>
+                  <span className="font-bold">{t.btnGallery}</span>
                 </label>
               </div>
 
@@ -957,7 +994,7 @@ function App() {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                   </svg>
-                  <span className="font-bold">كتابة المكونات يدوياً</span>
+                  <span className="font-bold">{t.btnManual}</span>
               </button>
             </div>
           )}
@@ -970,9 +1007,9 @@ function App() {
               {!result && (
                 <div className="mb-6 space-y-4">
                   <div className="flex items-center justify-between">
-                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">الصور المختارة ({images.length}/{MAX_IMAGES_PER_SCAN})</h3>
+                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">{t.selectedImages} ({images.length}/{MAX_IMAGES_PER_SCAN})</h3>
                      {images.length < MAX_IMAGES_PER_SCAN && (
-                       <button onClick={resetApp} className="text-xs text-red-500 hover:text-red-700">حذف الكل</button>
+                       <button onClick={resetApp} className="text-xs text-red-500 hover:text-red-700">{t.deleteAll}</button>
                      )}
                   </div>
                   
@@ -1002,7 +1039,7 @@ function App() {
                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                          </svg>
-                         <span className="text-xs font-bold">إضافة صورة</span>
+                         <span className="text-xs font-bold">{t.addImage}</span>
                       </button>
                     )}
                   </div>
@@ -1020,13 +1057,13 @@ function App() {
                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-20 h-20 mb-4 opacity-30">
                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                          </svg>
-                         <p className="text-sm">تحليل النص...</p>
+                         <p className="text-sm">{t.analyzingText}</p>
                       </div>
                   )}
                   
                   {images.length > 1 && (
-                     <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md z-20">
-                        + {images.length - 1} صور أخرى
+                     <div className={`absolute top-2 ${language === 'ar' ? 'left-2' : 'right-2'} bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md z-20`}>
+                        + {images.length - 1} {t.moreImages}
                      </div>
                   )}
 
@@ -1043,7 +1080,7 @@ function App() {
                     <>
                        {/* Confidence Badge */}
                        {result.confidence !== undefined && (
-                          <div className={`absolute top-2 right-2 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold border shadow-lg flex items-center gap-1.5 z-20 ${
+                          <div className={`absolute top-2 ${language === 'ar' ? 'right-2' : 'left-2'} backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold border shadow-lg flex items-center gap-1.5 z-20 ${
                             result.confidence > 80 ? 'bg-emerald-500/80 border-emerald-400 text-white' : 
                             result.confidence > 50 ? 'bg-yellow-500/80 border-yellow-400 text-white' : 
                             'bg-red-500/80 border-red-400 text-white'
@@ -1051,7 +1088,7 @@ function App() {
                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clipRule="evenodd" />
                              </svg>
-                             <span>دقة {result.confidence}%</span>
+                             <span>{t.confidence} {result.confidence}%</span>
                           </div>
                        )}
 
@@ -1059,7 +1096,7 @@ function App() {
                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-12 z-20">
                           <div className="flex items-center gap-2 mb-2">
                              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                             <p className="text-white/90 text-xs font-bold">المكونات التي تم رصدها:</p>
+                             <p className="text-white/90 text-xs font-bold">{t.ingredientsDetected}</p>
                           </div>
                           <div className="flex flex-wrap gap-1.5 max-h-[80px] overflow-y-auto custom-scrollbar">
                             {result.ingredientsDetected && result.ingredientsDetected.length > 0 ? (
@@ -1072,7 +1109,7 @@ function App() {
                                   </span>
                                 ))
                             ) : (
-                               <span className="text-white/60 text-[10px] italic">لم يتم رصد مكونات محددة</span>
+                               <span className="text-white/60 text-[10px] italic">{t.noIngredientsFound}</span>
                             )}
                           </div>
                        </div>
@@ -1082,7 +1119,7 @@ function App() {
                   {!isLoading && !result && (
                     <button 
                       onClick={resetApp}
-                      className="absolute top-2 left-2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm active:scale-90 transition"
+                      className={`absolute top-2 ${language === 'ar' ? 'left-2' : 'right-2'} bg-black/50 text-white p-2 rounded-full hover:bg-black/70 backdrop-blur-sm active:scale-90 transition`}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1103,9 +1140,9 @@ function App() {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">جاري التحليل العميق...</h3>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1 animate-pulse">{t.analyzingDeep}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed max-w-[90%] mx-auto">
-                       نقوم بفحص كل مكون بدقة لضمان النتيجة.
+                       {t.analyzingDesc}
                     </p>
                   </div>
                 )}
@@ -1119,7 +1156,7 @@ function App() {
                           </svg>
                        </div>
                        <div className="flex-grow">
-                          <h4 className="text-sm font-bold text-red-800 dark:text-red-200 mb-1">تعذر التحليل</h4>
+                          <h4 className="text-sm font-bold text-red-800 dark:text-red-200 mb-1">{t.analysisFailed}</h4>
                           <p className="text-xs text-red-600 dark:text-red-300 mb-3 leading-relaxed">{error}</p>
                           <div className="flex gap-2">
                             {images.length > 0 && (
@@ -1127,14 +1164,14 @@ function App() {
                                 onClick={handleAnalyze}
                                 className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-sm active:scale-95 transition"
                                 >
-                                {useLowQuality ? 'محاولة (ضغط عالي)' : 'إعادة المحاولة'}
+                                {useLowQuality ? t.retryHighCompression : t.retry}
                                 </button>
                             )}
                             <button 
                               onClick={resetApp}
                               className="bg-white dark:bg-slate-800 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 text-xs font-bold py-2.5 px-3 rounded-lg active:scale-95 transition"
                             >
-                              إلغاء
+                              {t.cancel}
                             </button>
                           </div>
                        </div>
@@ -1150,7 +1187,7 @@ function App() {
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                     </svg>
-                    فحص الصور ({images.length})
+                    {t.scanImagesBtn} ({images.length})
                   </button>
                 )}
               </div>
@@ -1169,25 +1206,25 @@ function App() {
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
                     </svg>
-                   مشاركة
+                   {t.share}
                  </button>
                  <button onClick={resetApp} className="text-emerald-600 dark:text-emerald-400 font-bold text-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-3 py-1.5 rounded-lg transition border border-emerald-100 dark:border-emerald-900 shadow-sm bg-white dark:bg-slate-800">
-                   فحص جديد
+                   {t.newScan}
                  </button>
                </div>
 
-               <StatusBadge status={result.status} />
+               <StatusBadge status={result.status} lang={language} />
                
                <div className="space-y-4">
                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
-                   <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">النتيجة:</h3>
+                   <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2">{t.resultTitle}</h3>
                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{result.reason}</p>
                  </div>
 
                  {/* Detailed List */}
                  {result.ingredientsDetected && result.ingredientsDetected.length > 0 && (
                    <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-700">
-                     <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">تفاصيل المكونات:</h3>
+                     <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3">{t.ingredientsDetails}</h3>
                      <div className="flex flex-wrap gap-2">
                        {result.ingredientsDetected.map((ing, idx) => (
                          <span 
@@ -1208,20 +1245,20 @@ function App() {
       </main>
       
       <footer className="text-center text-gray-400 dark:text-gray-500 text-xs pb-6 pt-4">
-        <p className="mb-1">هذا التطبيق يستخدم الذكاء الاصطناعي وقد يحتمل الخطأ.</p>
-        <p className="mb-3">دائماً تحقق من المكونات بنفسك.</p>
+        <p className="mb-1">{t.footerDisclaimer1}</p>
+        <p className="mb-3">{t.footerDisclaimer2}</p>
         <div className="flex justify-center gap-4 mt-4">
            <a 
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              alert('يجب استبدال هذا الرابط برابط سياسة الخصوصية الخاص بك');
+              alert('Privacy Policy Placeholder');
             }}
             className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700 cursor-pointer"
            >
-             سياسة الخصوصية
+             {t.privacyPolicy}
            </a>
-           <a href="#" className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700">شروط الاستخدام</a>
+           <a href="#" className="text-emerald-600 dark:text-emerald-500 underline hover:text-emerald-700">{t.termsOfUse}</a>
         </div>
       </footer>
     </div>

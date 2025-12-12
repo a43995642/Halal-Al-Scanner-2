@@ -1,11 +1,16 @@
+
 import React, { useState } from 'react';
+import { Language } from '../types';
+import { translations } from '../utils/translations';
 
 interface OnboardingModalProps {
   onFinish: () => void;
+  lang: Language;
 }
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish }) => {
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish, lang }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const t = translations[lang];
 
   const totalSteps = 3;
 
@@ -39,9 +44,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish }) =>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                   </svg>
                </div>
-               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">ماسح الحلال الذكي</h2>
+               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">{t.onboardingTitle1}</h2>
                <p className="text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
-                 أداة ذكية تساعدك على فحص المكونات الغذائية والتأكد من سلامتها الشرعية في ثوانٍ.
+                 {t.onboardingDesc1}
                </p>
              </div>
            )}
@@ -53,15 +58,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish }) =>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                   </svg>
                </div>
-               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">كيفية الاستخدام</h2>
+               <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">{t.onboardingTitle2}</h2>
                <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-4 max-w-xs">
-                 وجه الكاميرا نحو <strong className="text-gray-800 dark:text-gray-200">قائمة المكونات</strong> الخلفية.
+                 {lang === 'ar' 
+                   ? <>وجه الكاميرا نحو <strong className="text-gray-800 dark:text-gray-200">قائمة المكونات</strong> الخلفية.</>
+                   : <>Point camera at the <strong className="text-gray-800 dark:text-gray-200">Ingredients List</strong>.</>
+                 }
                </p>
                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-xl text-sm border border-red-100 dark:border-red-900/50 flex items-center gap-2">
                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 shrink-0">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
                  </svg>
-                 لا تصور الباركود أو اسم المنتج فقط
+                 {t.onboardingWarning}
                </div>
              </div>
            )}
@@ -73,24 +81,24 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish }) =>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" />
                   </svg>
                </div>
-               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">تنبيه وإخلاء مسؤولية</h2>
-               <div className="text-right text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-700 w-full overflow-y-auto max-h-[220px] space-y-3 custom-scrollbar shadow-inner">
-                  <p className="font-bold text-gray-900 dark:text-white">يرجى قراءة التالي بعناية:</p>
+               <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">{t.onboardingTitle3}</h2>
+               <div className={`text-${lang === 'ar' ? 'right' : 'left'} text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-700 w-full overflow-y-auto max-h-[220px] space-y-3 custom-scrollbar shadow-inner`}>
+                  <p className="font-bold text-gray-900 dark:text-white">{t.readCarefully}</p>
                   <div className="flex gap-2 items-start">
                     <span className="text-amber-500 font-bold">1.</span>
-                    <p>هذا التطبيق يستخدم الذكاء الاصطناعي، وهو <span className="font-bold text-red-600 dark:text-red-400">يحتمل الخطأ والصواب</span>.</p>
+                    <p>{t.disclaimer1}</p>
                   </div>
                   <div className="flex gap-2 items-start">
                     <span className="text-amber-500 font-bold">2.</span>
-                    <p>النتائج للمساعدة فقط ولا تُعتبر فتوى شرعية أو بديلاً عن قراءة المكونات.</p>
+                    <p>{t.disclaimer2}</p>
                   </div>
                   <div className="flex gap-2 items-start">
                     <span className="text-amber-500 font-bold">3.</span>
-                    <p>أنت المسؤول الأول والأخير عن التحقق من حلال المنتج.</p>
+                    <p>{t.disclaimer3}</p>
                   </div>
                   <div className="flex gap-2 items-start">
                     <span className="text-amber-500 font-bold">4.</span>
-                    <p>في حال الشك، ابحث عن علامة "حلال" المعتمدة.</p>
+                    <p>{t.disclaimer4}</p>
                   </div>
                </div>
              </div>
@@ -110,15 +118,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onFinish }) =>
           >
             {currentStep === 2 ? (
                 <>
-                   <span>فهمت وأوافق</span>
+                   <span>{t.agree}</span>
                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                 </>
             ) : (
                 <>
-                  <span>التالي</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 rotate-180">
+                  <span>{t.next}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${lang === 'ar' ? 'rotate-180' : ''}`}>
                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                    </svg>
                 </>

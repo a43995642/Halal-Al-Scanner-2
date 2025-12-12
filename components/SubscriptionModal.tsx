@@ -1,13 +1,18 @@
+
 import React, { useState } from 'react';
+import { Language } from '../types';
+import { translations } from '../utils/translations';
 
 interface SubscriptionModalProps {
   onSubscribe: () => void;
   onClose: () => void;
   isLimitReached: boolean;
+  lang: Language;
 }
 
-export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscribe, onClose, isLimitReached }) => {
+export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscribe, onClose, isLimitReached, lang }) => {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'lifetime'>('lifetime');
+  const t = translations[lang];
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
@@ -16,7 +21,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 left-4 p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition z-20 backdrop-blur-md"
+          className={`absolute top-4 ${lang === 'ar' ? 'left-4' : 'right-4'} p-2 bg-black/10 hover:bg-black/20 text-white rounded-full transition z-20 backdrop-blur-md`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -35,10 +40,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 </svg>
              </div>
              <h2 className="text-2xl font-black text-white mb-2 leading-tight">
-               {isLimitReached ? 'انتهت المحاولات المجانية' : 'افتح النسخة الاحترافية'}
+               {isLimitReached ? t.subTitle : t.subTitlePro}
              </h2>
              <p className="text-emerald-100 text-sm font-medium">
-               احصل على وصول غير محدود ودقة أعلى
+               {t.subDesc}
              </p>
            </div>
         </div>
@@ -56,8 +61,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">سرعة ودقة مضاعفة</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">استخدام نماذج ذكاء اصطناعي متقدمة</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t.featureSpeed}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.featureSpeedDesc}</p>
                 </div>
               </div>
               
@@ -68,8 +73,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">فحوصات لا محدودة</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">لا قيود يومية على عدد الصور</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t.featureUnlimited}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.featureUnlimitedDesc}</p>
                 </div>
               </div>
 
@@ -80,14 +85,14 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                   </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">دعم التطوير</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">ساهم في تحسين التطبيق للمسلمين</p>
+                  <h4 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{t.featureSupport}</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t.featureSupportDesc}</p>
                 </div>
               </div>
             </div>
 
             {/* Pricing Selection */}
-            <h3 className="font-bold text-gray-900 dark:text-white mb-3 px-1">اختر الخطة المناسبة:</h3>
+            <h3 className="font-bold text-gray-900 dark:text-white mb-3 px-1">{t.choosePlan}</h3>
             <div className="space-y-3">
               {/* Monthly Plan */}
               <div 
@@ -103,13 +108,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                     {selectedPlan === 'monthly' && <div className="w-2 h-2 bg-white rounded-full"></div>}
                   </div>
                   <div>
-                    <span className="font-bold text-gray-900 dark:text-white block">اشتراك شهري</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">يجدد تلقائياً، إلغاء في أي وقت</span>
+                    <span className="font-bold text-gray-900 dark:text-white block">{t.monthlyPlan}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.monthlyDesc}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">9.99 ر.س</span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 block">/ شهر</span>
+                <div className={`text-${lang === 'ar' ? 'left' : 'right'}`}>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">{t.monthlyPrice}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 block">/ {t.month}</span>
                 </div>
               </div>
 
@@ -123,8 +128,8 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 }`}
               >
                 {/* Badge */}
-                <div className="absolute top-0 right-0 bg-amber-400 text-amber-900 text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm">
-                  أفضل قيمة (توفير 60%)
+                <div className={`absolute top-0 ${lang === 'ar' ? 'right-0 rounded-bl-xl' : 'left-0 rounded-br-xl'} bg-amber-400 text-amber-900 text-[10px] font-bold px-3 py-1 shadow-sm`}>
+                  {t.bestValue}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -132,13 +137,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                      {selectedPlan === 'lifetime' && <div className="w-2 h-2 bg-white rounded-full"></div>}
                   </div>
                   <div>
-                    <span className="font-bold text-gray-900 dark:text-white block pt-2">مدى الحياة</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">دفعة واحدة فقط، لا اشتراكات</span>
+                    <span className="font-bold text-gray-900 dark:text-white block pt-2">{t.lifetimePlan}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t.lifetimeDesc}</span>
                   </div>
                 </div>
-                <div className="text-right pt-2">
+                <div className={`text-${lang === 'ar' ? 'left' : 'right'} pt-2`}>
                   <span className="text-xs text-gray-400 dark:text-gray-500 line-through block">120 ر.س</span>
-                  <span className="font-bold text-amber-700 dark:text-amber-500 text-lg">49.99 ر.س</span>
+                  <span className="font-bold text-amber-700 dark:text-amber-500 text-lg">{t.lifetimePrice}</span>
                 </div>
               </div>
             </div>
@@ -156,18 +161,18 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onSubscrib
                 }`}
             >
               <span>
-                {selectedPlan === 'lifetime' ? 'شراء مدى الحياة' : 'اشترك الآن'}
+                {selectedPlan === 'lifetime' ? t.buyLifetime : t.subscribeNow}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 opacity-90">
                 <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z" clipRule="evenodd" />
               </svg>
             </button>
             <div className="flex justify-between items-center mt-4 text-[10px] text-gray-400 dark:text-gray-500 px-2">
-              <button className="hover:text-gray-600 dark:hover:text-gray-300 underline">استعادة المشتريات</button>
-              <div className="space-x-2 space-x-reverse">
-                <button className="hover:text-gray-600 dark:hover:text-gray-300">الشروط</button>
+              <button className="hover:text-gray-600 dark:hover:text-gray-300 underline">{t.restorePurchases}</button>
+              <div className={`space-x-2 ${lang === 'ar' ? 'space-x-reverse' : ''}`}>
+                <button className="hover:text-gray-600 dark:hover:text-gray-300">{t.termsOfUse}</button>
                 <span>•</span>
-                <button className="hover:text-gray-600 dark:hover:text-gray-300">الخصوصية</button>
+                <button className="hover:text-gray-600 dark:hover:text-gray-300">{t.privacyPolicy}</button>
               </div>
             </div>
         </div>

@@ -29,3 +29,5 @@ export enum CameraState {
   OPEN,
   CAPTURING
 }
+
+export type Language = 'ar' | 'en';
