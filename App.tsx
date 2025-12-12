@@ -226,6 +226,10 @@ function App() {
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Menu State for Mobile Header
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   // Subscription State (Supabase Integrated)
   const [isPremium, setIsPremium] = useState(false);
   const [scanCount, setScanCount] = useState(0);
@@ -261,6 +265,19 @@ function App() {
   });
 
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Initialize: Load terms, History & Supabase Auth
   useEffect(() => {
@@ -391,11 +408,13 @@ function App() {
   const toggleTheme = () => {
     vibrate(20);
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    setIsMenuOpen(false);
   };
 
   const toggleLanguage = () => {
     vibrate(20);
     setLanguage(prev => prev === 'ar' ? 'en' : 'ar');
+    setIsMenuOpen(false);
   };
 
   const showToast = (msg: string) => {
@@ -841,7 +860,8 @@ function App() {
           </div>
           
           {/* Controls Section */}
-          <div className="flex gap-2 sm:gap-3 items-center shrink-0">
+          <div className="flex gap-2 items-center shrink-0">
+             {/* Pro/Free Badge (Visible Always) */}
              {!isPremium ? (
                <div 
                  onClick={() => setShowSubscriptionModal(true)}
@@ -855,53 +875,15 @@ function App() {
                </div>
              ) : (
                 <div className="flex flex-col items-end justify-center">
-                  {/* Consolidated Badge: PRO + Text */}
                   <div className="bg-amber-400 dark:bg-amber-500 text-amber-900 dark:text-amber-950 px-2 sm:px-3 py-1 rounded-full shadow-sm border border-amber-300 dark:border-amber-400 flex items-center gap-1.5">
                     <span className="font-black text-[10px] bg-white/20 px-1.5 rounded-[4px]">PRO</span>
-                    {/* Fixed: Hidden on mobile to prevent layout breakage */}
+                    {/* Compact badge on mobile */}
                     <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap hidden sm:inline">{t.proBadge}</span>
                   </div>
                 </div>
              )}
 
-             {/* Language Toggle Button */}
-             <button 
-               onClick={toggleLanguage}
-               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0 font-bold text-sm"
-               aria-label="Toggle Language"
-             >
-               {language === 'ar' ? 'EN' : 'ع'}
-             </button>
-
-             {/* Theme Toggle Button */}
-             <button 
-               onClick={toggleTheme}
-               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
-               aria-label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-             >
-               {theme === 'dark' ? (
-                 /* Sun Icon */
-                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                 </svg>
-               ) : (
-                 /* Moon Icon */
-                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                 </svg>
-               )}
-             </button>
-
-             <button 
-               onClick={() => setShowOnboarding(true)}
-               className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
-               aria-label={t.howItWorks}
-             >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                </svg>
-             </button>
-
+             {/* History Button (Visible Always - Essential) */}
              <button 
                onClick={() => setShowHistory(true)} 
                className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
@@ -911,6 +893,80 @@ function App() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
              </button>
+
+             {/* Menu Dropdown Trigger (Replaces inline Lang/Theme/Help buttons on mobile to save space) */}
+             <div className="relative" ref={menuRef}>
+               <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="bg-white/20 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/30 transition shrink-0"
+                  aria-label="Menu"
+               >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                  </svg>
+               </button>
+
+               {/* Dropdown Menu */}
+               {isMenuOpen && (
+                 <div className={`absolute top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl py-2 z-50 animate-fade-in border border-gray-100 dark:border-slate-700 ${language === 'ar' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'}`}>
+                    
+                    {/* Language Switch */}
+                    <button 
+                      onClick={toggleLanguage}
+                      className="w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                        {language === 'ar' ? 'EN' : 'ع'}
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">
+                        {language === 'ar' ? 'English' : 'العربية'}
+                      </span>
+                    </button>
+
+                    {/* Theme Switch */}
+                    <button 
+                      onClick={toggleTheme}
+                      className="w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                         {theme === 'dark' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                            </svg>
+                         ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                            </svg>
+                         )}
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">
+                        {theme === 'dark' ? (language === 'ar' ? 'الوضع الفاتح' : 'Light Mode') : (language === 'ar' ? 'الوضع الداكن' : 'Dark Mode')}
+                      </span>
+                    </button>
+
+                    <div className="h-px bg-gray-100 dark:bg-slate-700 my-1 mx-2"></div>
+
+                    {/* How it works */}
+                    <button 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setShowOnboarding(true);
+                      }}
+                      className="w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                    >
+                       <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                          </svg>
+                       </div>
+                       <span className="text-gray-700 dark:text-gray-200 text-sm font-medium">
+                          {t.howItWorks}
+                       </span>
+                    </button>
+                 </div>
+               )}
+             </div>
+
           </div>
         </div>
       </header>
