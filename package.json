@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "cap:open": "cap open android",
+    "ensure-android": "node scripts/ensure-android-structure.js",
     "clean-setup": "rm -rf node_modules package-lock.json android && npm install && npm run build && npx cap add android && npx cap sync",
     "setup-android": "npx cap add android || echo 'Android platform already exists'",
     "build-apk": "npm install && npm run setup-android && npm run build && npx cap sync && node update-manifest.js && cd android && chmod +x gradlew && ./gradlew assembleDebug"

@@ -237,6 +237,9 @@ function App() {
   const [scanCount, setScanCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   // Language State
   const [language, setLanguage] = useState<Language>(() => {
@@ -281,8 +284,15 @@ function App() {
     };
   }, []);
 
-  // Initialize: Load terms, History & Supabase Auth
+  // Initialize: Load terms, History & Supabase Auth & PWA Prompt
   useEffect(() => {
+    // PWA Install Prompt
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     // Terms / Onboarding
     const accepted = localStorage.getItem('halalScannerTermsAccepted');
     if (accepted !== 'true') {
@@ -366,6 +376,7 @@ function App() {
 
     return () => {
       if (progressInterval.current) clearInterval(progressInterval.current);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
@@ -416,6 +427,16 @@ function App() {
   const toggleLanguage = () => {
     vibrate(20);
     setLanguage(prev => prev === 'ar' ? 'en' : 'ar');
+    setIsMenuOpen(false);
+  };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
     setIsMenuOpen(false);
   };
 
@@ -913,6 +934,23 @@ function App() {
                {isMenuOpen && (
                  <div className={`absolute top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl py-2 z-50 animate-fade-in border border-gray-100 dark:border-slate-700 ${language === 'ar' ? 'left-0 origin-top-left' : 'right-0 origin-top-right'}`}>
                     
+                    {/* Install App Button (PWA) - Only if supported */}
+                    {deferredPrompt && (
+                      <button 
+                        onClick={handleInstallClick}
+                        className="w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition border-b border-gray-100 dark:border-slate-700"
+                      >
+                         <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                         </div>
+                         <span className="text-emerald-700 dark:text-emerald-400 text-sm font-bold">
+                            {language === 'ar' ? 'تثبيت التطبيق' : 'Install App'}
+                         </span>
+                      </button>
+                    )}
+
                     {/* Language Switch */}
                     <button 
                       onClick={toggleLanguage}
