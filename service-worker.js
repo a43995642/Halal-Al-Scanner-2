@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'halal-scanner-v1';
+const CACHE_NAME = 'halal-scanner-v2';
 const urlsToCache = [
   '/',
   '/index.html',

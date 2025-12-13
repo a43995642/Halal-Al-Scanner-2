@@ -875,12 +875,20 @@ function App() {
 
       <header className="bg-emerald-600 dark:bg-emerald-800 text-white pt-[calc(1.5rem+env(safe-area-inset-top))] pb-6 px-6 shadow-lg rounded-b-3xl mb-8 sticky top-0 z-40 transition-colors duration-500">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          {/* Title Section: Added min-w-0 to allow text truncation if needed */}
-          <div className="min-w-0 flex-1 pl-2"> 
-            <h1 className="text-2xl font-bold mb-1 whitespace-nowrap leading-tight">
-              {t.appTitle}
-            </h1>
-            <p className="text-emerald-100 text-sm truncate">{t.appSubtitle}</p>
+          {/* Title Section: Added Logo */}
+          <div className="flex items-center gap-3 flex-1 min-w-0 pl-2">
+            <img 
+              src="./icon.png" 
+              alt="App Logo" 
+              className="w-12 h-12 rounded-xl shadow-md border border-white/10 object-cover bg-white/10" 
+              onError={(e) => e.currentTarget.style.display = 'none'} 
+            />
+            <div className="min-w-0"> 
+              <h1 className="text-2xl font-bold mb-0.5 whitespace-nowrap leading-tight">
+                {t.appTitle}
+              </h1>
+              <p className="text-emerald-100 text-sm truncate opacity-90">{t.appSubtitle}</p>
+            </div>
           </div>
           
           {/* Controls Section */}
