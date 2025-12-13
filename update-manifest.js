@@ -1,50 +1,63 @@
+
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const manifestPath = join('android', 'app', 'src', 'main', 'AndroidManifest.xml');
 
-console.log('🔧 Checking AndroidManifest.xml for permissions...');
+console.log('🔧 Checking AndroidManifest.xml settings...');
 
 if (existsSync(manifestPath)) {
   let content = readFileSync(manifestPath, 'utf-8');
   let hasChanges = false;
 
-  // 1. Add Internet Permission
-  if (!content.includes('android.permission.INTERNET')) {
-    const permissionTag = '<uses-permission android:name="android.permission.INTERNET" />';
-    content = content.replace('<application', `${permissionTag}\n    <application`);
-    console.log('✅ Injected: android.permission.INTERNET');
-    hasChanges = true;
+  // 1. Ensure permissions exist (Previous logic)
+  const permissions = [
+    '<uses-permission android:name="android.permission.INTERNET" />',
+    '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+    '<uses-permission android:name="android.permission.CAMERA" />'
+  ];
+
+  permissions.forEach(perm => {
+    if (!content.includes(perm)) {
+       const tagName = perm.match(/android:name="([^"]+)"/)[1];
+       content = content.replace('<application', `${perm}\n    <application`);
+       console.log(`✅ Injected permission: ${tagName}`);
+       hasChanges = true;
+    }
+  });
+
+  // 2. Force Icon Attributes in <application> tag
+  // This ensures we are pointing to @mipmap/ic_launcher which we just updated
+  if (!content.includes('android:icon="@mipmap/ic_launcher"')) {
+      // If it has another icon setting, replace it, otherwise add it (simplified regex replacement)
+      if (content.includes('android:icon=')) {
+          content = content.replace(/android:icon="[^"]*"/, 'android:icon="@mipmap/ic_launcher"');
+      } else {
+          content = content.replace('<application', '<application android:icon="@mipmap/ic_launcher"');
+      }
+      console.log('✅ Enforced android:icon="@mipmap/ic_launcher"');
+      hasChanges = true;
   }
 
-  // 2. Add Network State Permission (Helps some libs check if online)
-  if (!content.includes('android.permission.ACCESS_NETWORK_STATE')) {
-    const permissionTag = '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />';
-    content = content.replace('<application', `${permissionTag}\n    <application`);
-    console.log('✅ Injected: android.permission.ACCESS_NETWORK_STATE');
-    hasChanges = true;
+  if (!content.includes('android:roundIcon="@mipmap/ic_launcher_round"')) {
+      if (content.includes('android:roundIcon=')) {
+          content = content.replace(/android:roundIcon="[^"]*"/, 'android:roundIcon="@mipmap/ic_launcher_round"');
+      } else {
+          content = content.replace('<application', '<application android:roundIcon="@mipmap/ic_launcher_round"');
+      }
+      console.log('✅ Enforced android:roundIcon="@mipmap/ic_launcher_round"');
+      hasChanges = true;
   }
 
-  // 3. Add Camera Permission
-  if (!content.includes('android.permission.CAMERA')) {
-    const permissionTag = '<uses-permission android:name="android.permission.CAMERA" />';
-    content = content.replace('<application', `${permissionTag}\n    <application`);
-    console.log('✅ Injected: android.permission.CAMERA');
-    hasChanges = true;
-  }
-
-  // 4. Add Camera Feature
-  if (!content.includes('android.hardware.camera')) {
-    const featureTag = '<uses-feature android:name="android.hardware.camera" android:required="false" />';
-    content = content.replace('<application', `${featureTag}\n    <application`);
-    console.log('✅ Injected: android.hardware.camera');
-    hasChanges = true;
-  }
-
-  // 5. Enable Cleartext Traffic (Safety net for mixed content or redirects, though we use HTTPS)
+  // 3. Cleartext Traffic
   if (!content.includes('android:usesCleartextTraffic="true"')) {
-    content = content.replace('<application', '<application android:usesCleartextTraffic="true"');
-    console.log('✅ Injected: android:usesCleartextTraffic="true"');
+    if (content.includes('android:usesCleartextTraffic=')) {
+        // already exists, maybe false? force true
+        content = content.replace(/android:usesCleartextTraffic="[^"]*"/, 'android:usesCleartextTraffic="true"');
+    } else {
+        content = content.replace('<application', '<application android:usesCleartextTraffic="true"');
+    }
+    console.log('✅ Enforced Cleartext Traffic support');
     hasChanges = true;
   }
 
@@ -52,8 +65,8 @@ if (existsSync(manifestPath)) {
     writeFileSync(manifestPath, content);
     console.log('💾 AndroidManifest.xml updated successfully.');
   } else {
-    console.log('👍 Permissions already present.');
+    console.log('👍 Manifest is already correct.');
   }
 } else {
-  console.error(`❌ Manifest file not found at: ${manifestPath}. Make sure "npx cap add android" ran successfully.`);
+  console.error(`❌ Manifest file not found at: ${manifestPath}.`);
 }
