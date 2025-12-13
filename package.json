@@ -16,7 +16,7 @@
     "set-icon": "node scripts/set-android-icon.js",
     "clean-setup": "rm -rf node_modules package-lock.json android && npm install && npm run build && npx cap add android && npx cap sync",
     "setup-android": "npx cap add android || echo 'Android platform already exists'",
-    "build-apk": "npm install && npm run setup-android && npm run ensure-android && npm run set-icon && npm run build && npx cap sync && node update-manifest.js && cd android && chmod +x gradlew && ./gradlew assembleDebug"
+    "build-apk": "npm install && npm run setup-android && npm run ensure-android && npm run build && npx cap sync && npm run set-icon && node update-manifest.js && cd android && chmod +x gradlew && ./gradlew assembleDebug"
   },
   "engines": {
     "node": ">=18.x"

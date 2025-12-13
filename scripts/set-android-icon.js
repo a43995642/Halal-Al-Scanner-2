@@ -1,5 +1,5 @@
 
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, resolve } from 'path';
 
 const sourceIcon = resolve('icon.png');
@@ -34,7 +34,25 @@ const ensureDir = (dir) => {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 };
 
-// 2. Update Standard PNGs (Legacy Android)
+// Helper to delete file if exists
+const removeFile = (path) => {
+    if (existsSync(path)) {
+        try {
+            unlinkSync(path);
+            console.log(`🗑️  Deleted conflicting file: ${path}`);
+        } catch (e) {
+            console.warn(`⚠️  Failed to delete ${path}:`, e.message);
+        }
+    }
+};
+
+// 2. Clean up Default Capacitor/Android Vectors
+// These XML vectors (Android Robot) take precedence over PNGs if not removed.
+ensureDir(drawableFolder);
+removeFile(join(drawableFolder, 'ic_launcher_foreground.xml'));
+removeFile(join(drawableFolder, 'ic_launcher_background.xml'));
+
+// 3. Update Standard PNGs (Legacy Android)
 mipmapFolders.forEach(folder => {
     const folderPath = join(androidRes, folder);
     ensureDir(folderPath);
@@ -53,10 +71,10 @@ mipmapFolders.forEach(folder => {
     }
 });
 
-// 3. Setup Adaptive Icons (Android 8+)
+// 4. Setup Adaptive Icons (Android 8+)
 try {
     // A. Put the icon in 'drawable' to be used as the foreground
-    ensureDir(drawableFolder);
+    // We strictly use the PNG now since we deleted the XML
     copyFileSync(sourceIcon, join(drawableFolder, 'ic_launcher_foreground.png'));
     console.log('✅ Adaptive foreground set in drawable/');
 
@@ -70,6 +88,7 @@ try {
     console.log('✅ Adaptive background color set in values/');
 
     // C. Create the XML definitions for Adaptive Icons
+    // These link the foreground (our PNG) and background (our Color)
     ensureDir(anyDpiFolder);
     
     const adaptiveIconXml = `<?xml version="1.0" encoding="utf-8"?>
